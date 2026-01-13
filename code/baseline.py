@@ -5,13 +5,13 @@ import seaborn as sns
 
 import yfinance as yf
 
-from data_getter import Data_getter
+from data_getter import Data_Getter
 
 start_date = '2004-01-01'
 end_date = '2024-01-01'
 
 #Import data 
-data_getter = Data_getter()
+data_getter = Data_Getter()
 
 #Import tickers
 sp500_tickers = data_getter.get_tickers()

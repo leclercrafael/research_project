@@ -5,7 +5,7 @@ from io import StringIO
 import yfinance as yf
 import os
 
-class Data_getter:
+class Data_Getter:
 
     def __init__(self):
         self.tickers = []
@@ -38,16 +38,16 @@ class Data_getter:
         
     def get_financials(self, tickers : list, start_date : str, end_date : str) -> pd.DataFrame :
 
-        filename = f"sp500_{start_date}_{end_date}.csv"
+        self.start_date = start_date
+        self.end_data = end_date
 
-        if os.path.exists(filename):
-            self.data = pd.read_csv(filename, index_col=0, parse_dates=True)
+        self.filename = f"sp500_{start_date}_{end_date}.csv"
+
+        if os.path.exists('code/'+ self.filename):
+            self.data = pd.read_csv("code/"+ self.filename, index_col=0, parse_dates=True)
         
             if not self.data.empty:
                     return self.data
-            
-            
-        
              
         self.raw_data = yf.download(tickers=tickers, start=start_date, end=end_date, auto_adjust=True, threads=True)
 
@@ -58,8 +58,8 @@ class Data_getter:
 
         self.data = self.data.dropna(axis=1, how='all')
 
-        print(f"Sauvegarde des données dans {filename}...")
-        self.data.to_csv(filename)
+        print(f"Sauvegarde des données dans {self.filename}...")
+        self.data.to_csv('code/'+self.filename)
         
         return self.data
     
@@ -68,11 +68,18 @@ class Data_getter:
         if self.data is None:
             print("Erreur: Aucune donnée chargée. Lancez get_financials d'abord.")
             return pd.DataFrame()
+        
+        if os.path.exists('code/log_returns_'+ self.filename):
+            log_returns = pd.read_csv("code/log_returns_"+ self.filename, index_col=0, parse_dates=True)
+            return log_returns
             
         log_returns = np.log(self.data / self.data.shift(1))
-        
-        # On enlève la première ligne (NaN) et les colonnes incomplètes
-        return log_returns.dropna(axis=0, how='all')
+        log_returns = log_returns.dropna(axis=0, how='all').dropna(axis=1, how='all')
+
+        print(f"Sauvegarde des données dans log_returns_{self.filename}...")
+        log_returns.to_csv('code/log_returns_'+ self.filename)
+
+        return log_returns
 
 
 
