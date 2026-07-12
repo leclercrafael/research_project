@@ -1,0 +1,1255 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 100vh;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 100vh;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    
+        <script type="text/javascript">
+            network.on("stabilizationIterationsDone", function() {
+                console.log("Stabilisation terminée -> Verrouillage des noeuds.");
+                
+                // 1. On coupe la physique globale
+                network.setOptions( { physics: false } );
+                
+                // 2. On récupère tous les noeuds
+                var nodes = network.body.data.nodes.get();
+                
+                // 3. On force la propriété 'fixed' à true pour chacun
+                nodes.forEach(function(n) {
+                    n.fixed = true;
+                });
+                
+                // 4. On met à jour le dataset
+                network.body.data.nodes.update(nodes);
+                
+                console.log("Noeuds verrouillés.");
+            });
+        </script>
+        <style>
+            #loadingBar { display: none !important; }
+        </style>
+        </head>
+        
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="AA">AA</option>
+                                
+                                    <option value="AAL">AAL</option>
+                                
+                                    <option value="AAPL">AAPL</option>
+                                
+                                    <option value="ABBV">ABBV</option>
+                                
+                                    <option value="ABNB">ABNB</option>
+                                
+                                    <option value="ABT">ABT</option>
+                                
+                                    <option value="ACI">ACI</option>
+                                
+                                    <option value="ADBE">ADBE</option>
+                                
+                                    <option value="ADDYY">ADDYY</option>
+                                
+                                    <option value="ADP">ADP</option>
+                                
+                                    <option value="ADT">ADT</option>
+                                
+                                    <option value="AFRM">AFRM</option>
+                                
+                                    <option value="AIG">AIG</option>
+                                
+                                    <option value="AIRYY">AIRYY</option>
+                                
+                                    <option value="ALL">ALL</option>
+                                
+                                    <option value="ALLY">ALLY</option>
+                                
+                                    <option value="ALSMY">ALSMY</option>
+                                
+                                    <option value="AMAT">AMAT</option>
+                                
+                                    <option value="AMC">AMC</option>
+                                
+                                    <option value="AMD">AMD</option>
+                                
+                                    <option value="AMGN">AMGN</option>
+                                
+                                    <option value="AMKBY">AMKBY</option>
+                                
+                                    <option value="AMZN">AMZN</option>
+                                
+                                    <option value="AON">AON</option>
+                                
+                                    <option value="APO">APO</option>
+                                
+                                    <option value="ARES">ARES</option>
+                                
+                                    <option value="ASAN">ASAN</option>
+                                
+                                    <option value="AVGO">AVGO</option>
+                                
+                                    <option value="AXP">AXP</option>
+                                
+                                    <option value="AZN">AZN</option>
+                                
+                                    <option value="BA">BA</option>
+                                
+                                    <option value="BABA">BABA</option>
+                                
+                                    <option value="BAC">BAC</option>
+                                
+                                    <option value="BACHY">BACHY</option>
+                                
+                                    <option value="BAM">BAM</option>
+                                
+                                    <option value="BASFY">BASFY</option>
+                                
+                                    <option value="BAYRY">BAYRY</option>
+                                
+                                    <option value="BB">BB</option>
+                                
+                                    <option value="BBBY">BBBY</option>
+                                
+                                    <option value="BBVA">BBVA</option>
+                                
+                                    <option value="BBWI">BBWI</option>
+                                
+                                    <option value="BBY">BBY</option>
+                                
+                                    <option value="BCS">BCS</option>
+                                
+                                    <option value="BEKE">BEKE</option>
+                                
+                                    <option value="BHP">BHP</option>
+                                
+                                    <option value="BIDU">BIDU</option>
+                                
+                                    <option value="BIIB">BIIB</option>
+                                
+                                    <option value="BILI">BILI</option>
+                                
+                                    <option value="BIRD">BIRD</option>
+                                
+                                    <option value="BJ">BJ</option>
+                                
+                                    <option value="BK">BK</option>
+                                
+                                    <option value="BKNG">BKNG</option>
+                                
+                                    <option value="BKR">BKR</option>
+                                
+                                    <option value="BLK">BLK</option>
+                                
+                                    <option value="BMBL">BMBL</option>
+                                
+                                    <option value="BMO">BMO</option>
+                                
+                                    <option value="BMY">BMY</option>
+                                
+                                    <option value="BNPQY">BNPQY</option>
+                                
+                                    <option value="BNTX">BNTX</option>
+                                
+                                    <option value="BP">BP</option>
+                                
+                                    <option value="BRK-B">BRK-B</option>
+                                
+                                    <option value="BUD">BUD</option>
+                                
+                                    <option value="BX">BX</option>
+                                
+                                    <option value="BYDDY">BYDDY</option>
+                                
+                                    <option value="BYND">BYND</option>
+                                
+                                    <option value="C">C</option>
+                                
+                                    <option value="CAH">CAH</option>
+                                
+                                    <option value="CART">CART</option>
+                                
+                                    <option value="CAT">CAT</option>
+                                
+                                    <option value="CB">CB</option>
+                                
+                                    <option value="CBOE">CBOE</option>
+                                
+                                    <option value="CBRE">CBRE</option>
+                                
+                                    <option value="CCL">CCL</option>
+                                
+                                    <option value="CG">CG</option>
+                                
+                                    <option value="CHTR">CHTR</option>
+                                
+                                    <option value="CHWY">CHWY</option>
+                                
+                                    <option value="CI">CI</option>
+                                
+                                    <option value="CICHY">CICHY</option>
+                                
+                                    <option value="CL">CL</option>
+                                
+                                    <option value="CLX">CLX</option>
+                                
+                                    <option value="CMA">CMA</option>
+                                
+                                    <option value="CMCSA">CMCSA</option>
+                                
+                                    <option value="CME">CME</option>
+                                
+                                    <option value="CMG">CMG</option>
+                                
+                                    <option value="CMI">CMI</option>
+                                
+                                    <option value="CNP">CNP</option>
+                                
+                                    <option value="COF">COF</option>
+                                
+                                    <option value="COIN">COIN</option>
+                                
+                                    <option value="COP">COP</option>
+                                
+                                    <option value="COST">COST</option>
+                                
+                                    <option value="CPB">CPB</option>
+                                
+                                    <option value="CPNG">CPNG</option>
+                                
+                                    <option value="CRC">CRC</option>
+                                
+                                    <option value="CRM">CRM</option>
+                                
+                                    <option value="CRWD">CRWD</option>
+                                
+                                    <option value="CRZBY">CRZBY</option>
+                                
+                                    <option value="CSCO">CSCO</option>
+                                
+                                    <option value="CSX">CSX</option>
+                                
+                                    <option value="CVNA">CVNA</option>
+                                
+                                    <option value="CVS">CVS</option>
+                                
+                                    <option value="CVX">CVX</option>
+                                
+                                    <option value="CWK">CWK</option>
+                                
+                                    <option value="DAL">DAL</option>
+                                
+                                    <option value="DASH">DASH</option>
+                                
+                                    <option value="DB">DB</option>
+                                
+                                    <option value="DBX">DBX</option>
+                                
+                                    <option value="DD">DD</option>
+                                
+                                    <option value="DE">DE</option>
+                                
+                                    <option value="DELL">DELL</option>
+                                
+                                    <option value="DG">DG</option>
+                                
+                                    <option value="DGX">DGX</option>
+                                
+                                    <option value="DIDIY">DIDIY</option>
+                                
+                                    <option value="DIS">DIS</option>
+                                
+                                    <option value="DKNG">DKNG</option>
+                                
+                                    <option value="DKS">DKS</option>
+                                
+                                    <option value="DLAKY">DLAKY</option>
+                                
+                                    <option value="DLTR">DLTR</option>
+                                
+                                    <option value="DOCU">DOCU</option>
+                                
+                                    <option value="DUK">DUK</option>
+                                
+                                    <option value="DVN">DVN</option>
+                                
+                                    <option value="E">E</option>
+                                
+                                    <option value="EA">EA</option>
+                                
+                                    <option value="EADSY">EADSY</option>
+                                
+                                    <option value="EBAY">EBAY</option>
+                                
+                                    <option value="EFX">EFX</option>
+                                
+                                    <option value="ELV">ELV</option>
+                                
+                                    <option value="EMN">EMN</option>
+                                
+                                    <option value="ENB">ENB</option>
+                                
+                                    <option value="EQT">EQT</option>
+                                
+                                    <option value="ERIC">ERIC</option>
+                                
+                                    <option value="ESAIY">ESAIY</option>
+                                
+                                    <option value="ETR">ETR</option>
+                                
+                                    <option value="ETSY">ETSY</option>
+                                
+                                    <option value="EXC">EXC</option>
+                                
+                                    <option value="EXPGY">EXPGY</option>
+                                
+                                    <option value="F">F</option>
+                                
+                                    <option value="FCX">FCX</option>
+                                
+                                    <option value="FDX">FDX</option>
+                                
+                                    <option value="FITB">FITB</option>
+                                
+                                    <option value="FNMA">FNMA</option>
+                                
+                                    <option value="FOXA">FOXA</option>
+                                
+                                    <option value="FUJIY">FUJIY</option>
+                                
+                                    <option value="GE">GE</option>
+                                
+                                    <option value="GEN">GEN</option>
+                                
+                                    <option value="GFS">GFS</option>
+                                
+                                    <option value="GILD">GILD</option>
+                                
+                                    <option value="GIS">GIS</option>
+                                
+                                    <option value="GLNCY">GLNCY</option>
+                                
+                                    <option value="GM">GM</option>
+                                
+                                    <option value="GME">GME</option>
+                                
+                                    <option value="GOLD">GOLD</option>
+                                
+                                    <option value="GOOGL">GOOGL</option>
+                                
+                                    <option value="GRPN">GRPN</option>
+                                
+                                    <option value="GS">GS</option>
+                                
+                                    <option value="GSK">GSK</option>
+                                
+                                    <option value="HAL">HAL</option>
+                                
+                                    <option value="HAS">HAS</option>
+                                
+                                    <option value="HCA">HCA</option>
+                                
+                                    <option value="HD">HD</option>
+                                
+                                    <option value="HIG">HIG</option>
+                                
+                                    <option value="HLT">HLT</option>
+                                
+                                    <option value="HMC">HMC</option>
+                                
+                                    <option value="HNHPF">HNHPF</option>
+                                
+                                    <option value="HOG">HOG</option>
+                                
+                                    <option value="HON">HON</option>
+                                
+                                    <option value="HOOD">HOOD</option>
+                                
+                                    <option value="HPE">HPE</option>
+                                
+                                    <option value="HPQ">HPQ</option>
+                                
+                                    <option value="HSBC">HSBC</option>
+                                
+                                    <option value="HTZ">HTZ</option>
+                                
+                                    <option value="HUM">HUM</option>
+                                
+                                    <option value="IBKR">IBKR</option>
+                                
+                                    <option value="IBM">IBM</option>
+                                
+                                    <option value="ICE">ICE</option>
+                                
+                                    <option value="IFNNY">IFNNY</option>
+                                
+                                    <option value="ILMN">ILMN</option>
+                                
+                                    <option value="INO">INO</option>
+                                
+                                    <option value="INTC">INTC</option>
+                                
+                                    <option value="INTU">INTU</option>
+                                
+                                    <option value="IQ">IQ</option>
+                                
+                                    <option value="ISNPY">ISNPY</option>
+                                
+                                    <option value="IVZ">IVZ</option>
+                                
+                                    <option value="JBAXY">JBAXY</option>
+                                
+                                    <option value="JBLU">JBLU</option>
+                                
+                                    <option value="JD">JD</option>
+                                
+                                    <option value="JEF">JEF</option>
+                                
+                                    <option value="JNJ">JNJ</option>
+                                
+                                    <option value="JPM">JPM</option>
+                                
+                                    <option value="KBH">KBH</option>
+                                
+                                    <option value="KHC">KHC</option>
+                                
+                                    <option value="KKR">KKR</option>
+                                
+                                    <option value="KMB">KMB</option>
+                                
+                                    <option value="KMI">KMI</option>
+                                
+                                    <option value="KNX">KNX</option>
+                                
+                                    <option value="KO">KO</option>
+                                
+                                    <option value="KODK">KODK</option>
+                                
+                                    <option value="KR">KR</option>
+                                
+                                    <option value="KSS">KSS</option>
+                                
+                                    <option value="LCID">LCID</option>
+                                
+                                    <option value="LEN">LEN</option>
+                                
+                                    <option value="LEVI">LEVI</option>
+                                
+                                    <option value="LKNCY">LKNCY</option>
+                                
+                                    <option value="LLY">LLY</option>
+                                
+                                    <option value="LMT">LMT</option>
+                                
+                                    <option value="LNVGY">LNVGY</option>
+                                
+                                    <option value="LOW">LOW</option>
+                                
+                                    <option value="LPLA">LPLA</option>
+                                
+                                    <option value="LVMUY">LVMUY</option>
+                                
+                                    <option value="LVS">LVS</option>
+                                
+                                    <option value="LYFT">LYFT</option>
+                                
+                                    <option value="LYV">LYV</option>
+                                
+                                    <option value="LZB">LZB</option>
+                                
+                                    <option value="M">M</option>
+                                
+                                    <option value="MA">MA</option>
+                                
+                                    <option value="MAR">MAR</option>
+                                
+                                    <option value="MARA">MARA</option>
+                                
+                                    <option value="MBGYY">MBGYY</option>
+                                
+                                    <option value="MCD">MCD</option>
+                                
+                                    <option value="MCK">MCK</option>
+                                
+                                    <option value="MCO">MCO</option>
+                                
+                                    <option value="MDLZ">MDLZ</option>
+                                
+                                    <option value="MDT">MDT</option>
+                                
+                                    <option value="MET">MET</option>
+                                
+                                    <option value="META">META</option>
+                                
+                                    <option value="MGM">MGM</option>
+                                
+                                    <option value="MKTX">MKTX</option>
+                                
+                                    <option value="MMM">MMM</option>
+                                
+                                    <option value="MO">MO</option>
+                                
+                                    <option value="MORN">MORN</option>
+                                
+                                    <option value="MRK">MRK</option>
+                                
+                                    <option value="MRNA">MRNA</option>
+                                
+                                    <option value="MS">MS</option>
+                                
+                                    <option value="MSCI">MSCI</option>
+                                
+                                    <option value="MSFT">MSFT</option>
+                                
+                                    <option value="MSTR">MSTR</option>
+                                
+                                    <option value="MTB">MTB</option>
+                                
+                                    <option value="MTCH">MTCH</option>
+                                
+                                    <option value="MU">MU</option>
+                                
+                                    <option value="NCLH">NCLH</option>
+                                
+                                    <option value="NDAQ">NDAQ</option>
+                                
+                                    <option value="NEM">NEM</option>
+                                
+                                    <option value="NFLX">NFLX</option>
+                                
+                                    <option value="NIO">NIO</option>
+                                
+                                    <option value="NKE">NKE</option>
+                                
+                                    <option value="NMR">NMR</option>
+                                
+                                    <option value="NOC">NOC</option>
+                                
+                                    <option value="NOK">NOK</option>
+                                
+                                    <option value="NSANY">NSANY</option>
+                                
+                                    <option value="NSRGY">NSRGY</option>
+                                
+                                    <option value="NTDOY">NTDOY</option>
+                                
+                                    <option value="NTES">NTES</option>
+                                
+                                    <option value="NU">NU</option>
+                                
+                                    <option value="NUE">NUE</option>
+                                
+                                    <option value="NVAX">NVAX</option>
+                                
+                                    <option value="NVDA">NVDA</option>
+                                
+                                    <option value="NVS">NVS</option>
+                                
+                                    <option value="NWSA">NWSA</option>
+                                
+                                    <option value="NXPI">NXPI</option>
+                                
+                                    <option value="ODFL">ODFL</option>
+                                
+                                    <option value="OKTA">OKTA</option>
+                                
+                                    <option value="OPEN">OPEN</option>
+                                
+                                    <option value="ORCL">ORCL</option>
+                                
+                                    <option value="OTLY">OTLY</option>
+                                
+                                    <option value="OXY">OXY</option>
+                                
+                                    <option value="PATH">PATH</option>
+                                
+                                    <option value="PBR">PBR</option>
+                                
+                                    <option value="PCG">PCG</option>
+                                
+                                    <option value="PDD">PDD</option>
+                                
+                                    <option value="PEP">PEP</option>
+                                
+                                    <option value="PFE">PFE</option>
+                                
+                                    <option value="PG">PG</option>
+                                
+                                    <option value="PINS">PINS</option>
+                                
+                                    <option value="PLD">PLD</option>
+                                
+                                    <option value="PLTR">PLTR</option>
+                                
+                                    <option value="PLUG">PLUG</option>
+                                
+                                    <option value="PM">PM</option>
+                                
+                                    <option value="PNC">PNC</option>
+                                
+                                    <option value="PRU">PRU</option>
+                                
+                                    <option value="PSX">PSX</option>
+                                
+                                    <option value="PTON">PTON</option>
+                                
+                                    <option value="PYPL">PYPL</option>
+                                
+                                    <option value="QCOM">QCOM</option>
+                                
+                                    <option value="QDEL">QDEL</option>
+                                
+                                    <option value="R">R</option>
+                                
+                                    <option value="RBLX">RBLX</option>
+                                
+                                    <option value="RCL">RCL</option>
+                                
+                                    <option value="REGN">REGN</option>
+                                
+                                    <option value="RF">RF</option>
+                                
+                                    <option value="RGR">RGR</option>
+                                
+                                    <option value="RHHBY">RHHBY</option>
+                                
+                                    <option value="RIO">RIO</option>
+                                
+                                    <option value="RIOT">RIOT</option>
+                                
+                                    <option value="RIVN">RIVN</option>
+                                
+                                    <option value="RKT">RKT</option>
+                                
+                                    <option value="RKUNY">RKUNY</option>
+                                
+                                    <option value="RNLSY">RNLSY</option>
+                                
+                                    <option value="ROKU">ROKU</option>
+                                
+                                    <option value="RTX">RTX</option>
+                                
+                                    <option value="RY">RY</option>
+                                
+                                    <option value="RYAAY">RYAAY</option>
+                                
+                                    <option value="SAN">SAN</option>
+                                
+                                    <option value="SAP">SAP</option>
+                                
+                                    <option value="SBUX">SBUX</option>
+                                
+                                    <option value="SCBFF">SCBFF</option>
+                                
+                                    <option value="SCGLY">SCGLY</option>
+                                
+                                    <option value="SCHW">SCHW</option>
+                                
+                                    <option value="SFIX">SFIX</option>
+                                
+                                    <option value="SFTBY">SFTBY</option>
+                                
+                                    <option value="SHAK">SHAK</option>
+                                
+                                    <option value="SHEL">SHEL</option>
+                                
+                                    <option value="SHOP">SHOP</option>
+                                
+                                    <option value="SIEGY">SIEGY</option>
+                                
+                                    <option value="SMCI">SMCI</option>
+                                
+                                    <option value="SNAP">SNAP</option>
+                                
+                                    <option value="SNOW">SNOW</option>
+                                
+                                    <option value="SNY">SNY</option>
+                                
+                                    <option value="SOFI">SOFI</option>
+                                
+                                    <option value="SONO">SONO</option>
+                                
+                                    <option value="SONY">SONY</option>
+                                
+                                    <option value="SPCE">SPCE</option>
+                                
+                                    <option value="SPGI">SPGI</option>
+                                
+                                    <option value="SPOT">SPOT</option>
+                                
+                                    <option value="SSNLF">SSNLF</option>
+                                
+                                    <option value="STLA">STLA</option>
+                                
+                                    <option value="STT">STT</option>
+                                
+                                    <option value="STZ">STZ</option>
+                                
+                                    <option value="SYF">SYF</option>
+                                
+                                    <option value="T">T</option>
+                                
+                                    <option value="TAK">TAK</option>
+                                
+                                    <option value="TCEHY">TCEHY</option>
+                                
+                                    <option value="TD">TD</option>
+                                
+                                    <option value="TGT">TGT</option>
+                                
+                                    <option value="THC">THC</option>
+                                
+                                    <option value="TLRY">TLRY</option>
+                                
+                                    <option value="TM">TM</option>
+                                
+                                    <option value="TME">TME</option>
+                                
+                                    <option value="TMUS">TMUS</option>
+                                
+                                    <option value="TROW">TROW</option>
+                                
+                                    <option value="TRP">TRP</option>
+                                
+                                    <option value="TRU">TRU</option>
+                                
+                                    <option value="TRV">TRV</option>
+                                
+                                    <option value="TSLA">TSLA</option>
+                                
+                                    <option value="TSM">TSM</option>
+                                
+                                    <option value="TSN">TSN</option>
+                                
+                                    <option value="TTE">TTE</option>
+                                
+                                    <option value="TTWO">TTWO</option>
+                                
+                                    <option value="TWLO">TWLO</option>
+                                
+                                    <option value="TXN">TXN</option>
+                                
+                                    <option value="UA">UA</option>
+                                
+                                    <option value="UAL">UAL</option>
+                                
+                                    <option value="UBER">UBER</option>
+                                
+                                    <option value="UBS">UBS</option>
+                                
+                                    <option value="UL">UL</option>
+                                
+                                    <option value="ULTA">ULTA</option>
+                                
+                                    <option value="UNCRY">UNCRY</option>
+                                
+                                    <option value="UNH">UNH</option>
+                                
+                                    <option value="UNP">UNP</option>
+                                
+                                    <option value="UNPRF">UNPRF</option>
+                                
+                                    <option value="UPS">UPS</option>
+                                
+                                    <option value="UPWK">UPWK</option>
+                                
+                                    <option value="URBN">URBN</option>
+                                
+                                    <option value="USB">USB</option>
+                                
+                                    <option value="V">V</option>
+                                
+                                    <option value="VALE">VALE</option>
+                                
+                                    <option value="VIRT">VIRT</option>
+                                
+                                    <option value="VLVLY">VLVLY</option>
+                                
+                                    <option value="VOD">VOD</option>
+                                
+                                    <option value="VTRS">VTRS</option>
+                                
+                                    <option value="VWAGY">VWAGY</option>
+                                
+                                    <option value="VYGVQ">VYGVQ</option>
+                                
+                                    <option value="VZ">VZ</option>
+                                
+                                    <option value="WBD">WBD</option>
+                                
+                                    <option value="WDC">WDC</option>
+                                
+                                    <option value="WERN">WERN</option>
+                                
+                                    <option value="WFC">WFC</option>
+                                
+                                    <option value="WHR">WHR</option>
+                                
+                                    <option value="WMG">WMG</option>
+                                
+                                    <option value="WMT">WMT</option>
+                                
+                                    <option value="WYNN">WYNN</option>
+                                
+                                    <option value="XIACF">XIACF</option>
+                                
+                                    <option value="XOM">XOM</option>
+                                
+                                    <option value="XPEV">XPEV</option>
+                                
+                                    <option value="XPO">XPO</option>
+                                
+                                    <option value="XRX">XRX</option>
+                                
+                                    <option value="YAHOY">YAHOY</option>
+                                
+                                    <option value="YELP">YELP</option>
+                                
+                                    <option value="YMM">YMM</option>
+                                
+                                    <option value="YUMC">YUMC</option>
+                                
+                                    <option value="Z">Z</option>
+                                
+                                    <option value="ZM">ZM</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "AA", "label": "AA", "shape": "dot", "size": 15, "title": "AA : Alcoa Corp.. Sector : Basic Materials. Connexions: 3", "x": -561.7372439591381, "y": -128.85733584043953}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AAL", "label": "AAL", "shape": "dot", "size": 15, "title": "AAL : American Airlines Group Inc.. Sector : Industrials. Connexions: 1", "x": 1121.8928895089998, "y": 1430.1687969553896}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AAPL", "label": "AAPL", "shape": "dot", "size": 15, "title": "AAPL : Apple Inc.. Sector : Technology. Connexions: 1", "x": 515.9562470924187, "y": -922.422887808589}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ABBV", "label": "ABBV", "shape": "dot", "size": 15, "title": "ABBV : AbbVie Inc.. Sector : Healthcare. Connexions: 1", "x": -1802.4520900767238, "y": -247.35822370970806}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ABNB", "label": "ABNB", "shape": "dot", "size": 15, "title": "ABNB : Airbnb Inc.. Sector : Consumer Cyclical. Connexions: 2", "x": 293.3997953761605, "y": -1381.4514209533065}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ABT", "label": "ABT", "shape": "dot", "size": 15, "title": "ABT : Abbott Laboratories. Sector : Healthcare. Connexions: 1", "x": -1581.0946555715832, "y": -249.18475756233084}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ACI", "label": "ACI", "shape": "dot", "size": 15, "title": "ACI : Albertsons Cos.. Sector : Consumer Defensive. Connexions: 1", "x": -927.2811841119403, "y": 1195.7435479804612}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ADBE", "label": "ADBE", "shape": "dot", "size": 15, "title": "ADBE : Adobe Inc.. Sector : Technology. Connexions: 3", "x": 312.6984682727014, "y": -883.9462252665046}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ADDYY", "label": "ADDYY", "shape": "dot", "size": 15, "title": "ADDYY : Adidas AG. Sector : Consumer Cyclical. Connexions: 1", "x": -108.25523596726643, "y": 40.81440422921269}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ADP", "label": "ADP", "shape": "dot", "size": 15, "title": "ADP : Automatic Data Processing Inc.. Sector : Industrials. Connexions: 1", "x": -343.6678921966216, "y": 906.5971805574835}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ADT", "label": "ADT", "shape": "dot", "size": 15, "title": "ADT : ADT Inc.. Sector : Industrials. Connexions: 1", "x": -150.81140252257543, "y": 1139.861607232021}, {"color": "#ff4d4d", "font": {"color": "white"}, "id": "AFRM", "label": "AFRM", "shape": "dot", "size": 40, "title": "AFRM : Affirm Holdings Inc.. Sector : Financial Services. Connexions: 11", "x": 547.7789075197597, "y": -1284.1101680714064}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AIG", "label": "AIG", "shape": "dot", "size": 15, "title": "AIG : American International Group Inc.. Sector : Financial Services. Connexions: 1", "x": 644.5917901028691, "y": 917.0864808735806}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AIRYY", "label": "AIRYY", "shape": "dot", "size": 15, "title": "AIRYY : AIRYY. Sector : Inconnu. Connexions: 1", "x": 376.5752377527265, "y": 268.7443282592276}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ALL", "label": "ALL", "shape": "dot", "size": 15, "title": "ALL : Allstate Corp.. Sector : Financial Services. Connexions: 2", "x": 152.423172895499, "y": 919.4469858551008}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ALLY", "label": "ALLY", "shape": "dot", "size": 15, "title": "ALLY : Ally Financial Inc.. Sector : Financial Services. Connexions: 2", "x": 664.4935824689774, "y": 1105.7132201693767}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ALSMY", "label": "ALSMY", "shape": "dot", "size": 15, "title": "ALSMY : ALSMY. Sector : Inconnu. Connexions: 1", "x": -66.65012683007015, "y": 206.03868780293246}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AMAT", "label": "AMAT", "shape": "dot", "size": 15, "title": "AMAT : Applied Materials. Sector : Technology. Connexions: 2", "x": 310.1621366706344, "y": -459.4173477726879}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AMC", "label": "AMC", "shape": "dot", "size": 15, "title": "AMC : AMC Entertainment Holdings. Sector : Communication Services. Connexions: 1", "x": 1299.2622545262627, "y": -984.1574026533516}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AMD", "label": "AMD", "shape": "dot", "size": 15, "title": "AMD : Advanced Micro Devices Inc.. Sector : Technology. Connexions: 1", "x": -29.60115975179812, "y": -613.1054002946295}, {"color": "#ffae42", "font": {"color": "white"}, "id": "AMGN", "label": "AMGN", "shape": "dot", "size": 25, "title": "AMGN : Amgen Inc.. Sector : Healthcare. Connexions: 5", "x": -1650.6582121326103, "y": -298.5520345340041}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AMKBY", "label": "AMKBY", "shape": "dot", "size": 15, "title": "AMKBY : A.P. Moller-Maersk A/S. Sector : Industrials. Connexions: 1", "x": -85.55952502868956, "y": -285.4719794990479}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AMZN", "label": "AMZN", "shape": "dot", "size": 15, "title": "AMZN : Amazon.com Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 665.2614257106152, "y": -994.7918067369401}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AON", "label": "AON", "shape": "dot", "size": 15, "title": "AON : Aon PLC. Sector : Financial Services. Connexions: 1", "x": 223.73103145607868, "y": 1347.7984778929624}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "APO", "label": "APO", "shape": "dot", "size": 15, "title": "APO : Apollo Global Management Inc.. Sector : Financial Services. Connexions: 1", "x": -342.52427230443146, "y": 1086.265278895852}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ARES", "label": "ARES", "shape": "dot", "size": 15, "title": "ARES : Ares Management Corp. Sector : Financial Services. Connexions: 1", "x": -301.216378188408, "y": 1135.8734601078704}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ASAN", "label": "ASAN", "shape": "dot", "size": 15, "title": "ASAN : Asana. Sector : Technology. Connexions: 3", "x": 776.6062467077414, "y": -1034.5223105864889}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AVGO", "label": "AVGO", "shape": "dot", "size": 15, "title": "AVGO : Broadcom Inc.. Sector : Technology. Connexions: 1", "x": 159.1903964910267, "y": -563.3948270204148}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AXP", "label": "AXP", "shape": "dot", "size": 15, "title": "AXP : American Express Co.. Sector : Financial Services. Connexions: 3", "x": 743.6891714592865, "y": 1092.5937790805685}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "AZN", "label": "AZN", "shape": "dot", "size": 15, "title": "AZN : AstraZeneca PLC. Sector : Healthcare. Connexions: 1", "x": 595.4017353133402, "y": 45.150728082334375}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BA", "label": "BA", "shape": "dot", "size": 15, "title": "BA : Boeing Co.. Sector : Industrials. Connexions: 1", "x": -607.5729486265946, "y": 908.2652287356079}, {"color": "#ffae42", "font": {"color": "white"}, "id": "BABA", "label": "BABA", "shape": "dot", "size": 25, "title": "BABA : Alibaba Group Holding Ltd. Sector : Consumer Cyclical. Connexions: 7", "x": 1014.6454342105782, "y": -1743.95063589581}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BAC", "label": "BAC", "shape": "dot", "size": 15, "title": "BAC : Bank of America Corp.. Sector : Financial Services. Connexions: 3", "x": -62.85705844273785, "y": 730.084522883178}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BACHY", "label": "BACHY", "shape": "dot", "size": 15, "title": "BACHY : Bank of China Ltd.. Sector : Financial Services. Connexions: 2", "x": 71.06657062615321, "y": 265.58681646460076}, {"color": "#ffae42", "font": {"color": "white"}, "id": "BAM", "label": "BAM", "shape": "dot", "size": 25, "title": "BAM : Brookfield Asset Management Inc.. Sector : Financial Services. Connexions: 5", "x": -96.60190363502218, "y": 939.46859111068}, {"color": "#ffae42", "font": {"color": "white"}, "id": "BASFY", "label": "BASFY", "shape": "dot", "size": 25, "title": "BASFY : BASF SE. Sector : Basic Materials. Connexions: 6", "x": -164.4422171638241, "y": 37.65009761903437}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BAYRY", "label": "BAYRY", "shape": "dot", "size": 15, "title": "BAYRY : Bayer AG. Sector : Healthcare. Connexions: 2", "x": -40.00985062536821, "y": 48.22577128319305}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BB", "label": "BB", "shape": "dot", "size": 15, "title": "BB : BlackBerry. Sector : Technology. Connexions: 1", "x": 850.3505537106022, "y": -1328.6492202900793}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BBBY", "label": "BBBY", "shape": "dot", "size": 15, "title": "BBBY : Bed Bath \u0026 Beyond Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 374.41561985828383, "y": -1533.2923847904697}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BBVA", "label": "BBVA", "shape": "dot", "size": 15, "title": "BBVA : Banco Bilbao Vizcaya Argentaria, S.A.. Sector : Financial Services. Connexions: 1", "x": -247.1396931383069, "y": 274.9052353155948}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BBWI", "label": "BBWI", "shape": "dot", "size": 15, "title": "BBWI : BBWI. Sector : Inconnu. Connexions: 1", "x": -34.17640926129943, "y": 1491.8978290515274}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BBY", "label": "BBY", "shape": "dot", "size": 15, "title": "BBY : Best Buy Co.. Sector : Consumer Cyclical. Connexions: 1", "x": 26.35522491320069, "y": 1158.710238048591}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BCS", "label": "BCS", "shape": "dot", "size": 15, "title": "BCS : Barclays PLC. Sector : Financial Services. Connexions: 1", "x": -264.3033182730156, "y": 391.18957697199954}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BEKE", "label": "BEKE", "shape": "dot", "size": 15, "title": "BEKE : KE Holdings Inc.. Sector : Real Estate. Connexions: 1", "x": 969.2999573477333, "y": -2000.0}, {"color": "#ffae42", "font": {"color": "white"}, "id": "BHP", "label": "BHP", "shape": "dot", "size": 25, "title": "BHP : BHP Billiton. Sector : Basic Materials. Connexions: 5", "x": -392.3194515626516, "y": 59.409910289683644}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BIDU", "label": "BIDU", "shape": "dot", "size": 15, "title": "BIDU : Baidu Inc.. Sector : Communication Services. Connexions: 1", "x": 971.2405108172976, "y": -1816.9350433035606}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BIIB", "label": "BIIB", "shape": "dot", "size": 15, "title": "BIIB : Biogen Inc.. Sector : Healthcare. Connexions: 1", "x": -1746.338015507534, "y": -425.3334552150142}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BILI", "label": "BILI", "shape": "dot", "size": 15, "title": "BILI : Bilibili Inc.. Sector : Communication Services. Connexions: 4", "x": 1014.1783310839916, "y": -1601.0401284524878}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BIRD", "label": "BIRD", "shape": "dot", "size": 15, "title": "BIRD : Allbirds Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 1086.7168974094386, "y": -928.7694935933113}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BJ", "label": "BJ", "shape": "dot", "size": 15, "title": "BJ : BJ\u2019s Wholesale Club Holdings Inc.. Sector : Consumer Defensive. Connexions: 1", "x": -756.675971856988, "y": 835.9930944669856}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BK", "label": "BK", "shape": "dot", "size": 15, "title": "BK : Bank of New York Mellon Corp.. Sector : Financial Services. Connexions: 3", "x": -112.00106453497433, "y": 631.8872134234373}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BKNG", "label": "BKNG", "shape": "dot", "size": 15, "title": "BKNG : Booking Holdings Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 899.1713684992019, "y": 1396.3720894586195}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BKR", "label": "BKR", "shape": "dot", "size": 15, "title": "BKR : Baker Hughes. Sector : Energy. Connexions: 1", "x": -828.4022679086546, "y": 136.76992181726527}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BLK", "label": "BLK", "shape": "dot", "size": 15, "title": "BLK : BlackRock Inc.. Sector : Financial Services. Connexions: 2", "x": -270.5414145523198, "y": 812.6635977005873}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BMBL", "label": "BMBL", "shape": "dot", "size": 15, "title": "BMBL : Bumble Inc.. Sector : Communication Services. Connexions: 3", "x": 428.20163137542687, "y": -1134.7360156615475}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BMO", "label": "BMO", "shape": "dot", "size": 15, "title": "BMO : BMO. Sector : Inconnu. Connexions: 2", "x": -100.61721085257918, "y": 792.4843226183781}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BMY", "label": "BMY", "shape": "dot", "size": 15, "title": "BMY : Bristol-Myers Squibb. Sector : Healthcare. Connexions: 1", "x": -1797.5940338552598, "y": 19.835284883825423}, {"color": "#ffae42", "font": {"color": "white"}, "id": "BNPQY", "label": "BNPQY", "shape": "dot", "size": 25, "title": "BNPQY : BNP Paribas SA. Sector : Financial Services. Connexions: 5", "x": -153.28141918879476, "y": 271.1969367404869}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BNTX", "label": "BNTX", "shape": "dot", "size": 15, "title": "BNTX : BioNTech SE. Sector : Healthcare. Connexions: 1", "x": 22.69255914830891, "y": -1500.5694610862688}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BP", "label": "BP", "shape": "dot", "size": 15, "title": "BP : BP PLC. Sector : Energy. Connexions: 1", "x": -475.20140830954443, "y": 162.36689250744993}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BRK-B", "label": "BRK-B", "shape": "dot", "size": 15, "title": "BRK-B : Berkshire Hathaway Inc.. Sector : Financial Services. Connexions: 1", "x": 673.6200251755143, "y": 887.5537222583033}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BUD", "label": "BUD", "shape": "dot", "size": 15, "title": "BUD : Anheuser-Busch InBev SA. Sector : Consumer Defensive. Connexions: 1", "x": -224.5082032933746, "y": 4.6147211253398055}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BX", "label": "BX", "shape": "dot", "size": 15, "title": "BX : Blackstone Inc.. Sector : Financial Services. Connexions: 1", "x": -188.9744652478385, "y": 1038.6360070394844}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BYDDY", "label": "BYDDY", "shape": "dot", "size": 15, "title": "BYDDY : BYD Co.. Sector : Consumer Cyclical. Connexions: 1", "x": 869.3199141628558, "y": -1629.9537768625914}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "BYND", "label": "BYND", "shape": "dot", "size": 15, "title": "BYND : Beyond Meat Inc.. Sector : Consumer Defensive. Connexions: 2", "x": 458.12744014080783, "y": -1346.856080201269}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "C", "label": "C", "shape": "dot", "size": 15, "title": "C : Citigroup Inc.. Sector : Financial Services. Connexions: 2", "x": -10.754825655708093, "y": 690.9246740167309}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CAH", "label": "CAH", "shape": "dot", "size": 15, "title": "CAH : Cardinal Health Inc.. Sector : Healthcare. Connexions: 1", "x": -1803.2563905583982, "y": -72.03189880124327}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CART", "label": "CART", "shape": "dot", "size": 15, "title": "CART : Instacart Inc.. Sector : Consumer Defensive. Connexions: 1", "x": -747.727197911308, "y": -292.0733226492443}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CAT", "label": "CAT", "shape": "dot", "size": 15, "title": "CAT : Caterpillar Inc.. Sector : Industrials. Connexions: 3", "x": -498.2312127032541, "y": 889.0308395001392}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CB", "label": "CB", "shape": "dot", "size": 15, "title": "CB : Chubb Ltd.. Sector : Financial Services. Connexions: 2", "x": 248.9333603696355, "y": 1138.0114565891297}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CBOE", "label": "CBOE", "shape": "dot", "size": 15, "title": "CBOE : Cboe Global Markets. Sector : Financial Services. Connexions: 1", "x": -441.00439050772314, "y": 1311.6701369391938}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CBRE", "label": "CBRE", "shape": "dot", "size": 15, "title": "CBRE : CBRE Group Inc.. Sector : Real Estate. Connexions: 2", "x": 356.3103419788798, "y": 1179.0379119826166}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CCL", "label": "CCL", "shape": "dot", "size": 15, "title": "CCL : Carnival Corp.. Sector : Consumer Cyclical. Connexions: 1", "x": 1081.5618520164687, "y": 1210.5711582088657}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CG", "label": "CG", "shape": "dot", "size": 15, "title": "CG : Carlyle Group Inc.. Sector : Financial Services. Connexions: 1", "x": -244.09020020198702, "y": 1082.5305373089461}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CHTR", "label": "CHTR", "shape": "dot", "size": 15, "title": "CHTR : Charter Communications Inc.. Sector : Communication Services. Connexions: 1", "x": -620.5304025942186, "y": 1218.7022882164194}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CHWY", "label": "CHWY", "shape": "dot", "size": 15, "title": "CHWY : Chewy Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 891.714518420263, "y": -943.0021162424484}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CI", "label": "CI", "shape": "dot", "size": 15, "title": "CI : Cigna Corp.. Sector : Healthcare. Connexions: 2", "x": 106.44320464115938, "y": 982.3809777228952}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CICHY", "label": "CICHY", "shape": "dot", "size": 15, "title": "CICHY : China Construction Bank Corp.. Sector : Financial Services. Connexions: 2", "x": 169.84273814209484, "y": 265.260556782777}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CL", "label": "CL", "shape": "dot", "size": 15, "title": "CL : Colgate-Palmolive Co.. Sector : Consumer Defensive. Connexions: 1", "x": -1389.2768406660875, "y": -220.0778970148106}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CLX", "label": "CLX", "shape": "dot", "size": 15, "title": "CLX : Clorox Co.. Sector : Consumer Defensive. Connexions: 1", "x": -1431.5124601932018, "y": -415.42893968993315}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CMA", "label": "CMA", "shape": "dot", "size": 15, "title": "CMA : CMA. Sector : Inconnu. Connexions: 3", "x": 236.27786902310467, "y": 861.8139604709095}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CMCSA", "label": "CMCSA", "shape": "dot", "size": 15, "title": "CMCSA : Comcast Corp.. Sector : Communication Services. Connexions: 3", "x": -500.09406165160266, "y": 1136.7493556012864}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CME", "label": "CME", "shape": "dot", "size": 15, "title": "CME : CME Group Inc.. Sector : Financial Services. Connexions: 2", "x": -369.60326268709747, "y": 1161.507207671647}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CMG", "label": "CMG", "shape": "dot", "size": 15, "title": "CMG : Chipotle Mexican Grill Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 154.31398868216533, "y": -1554.686976328223}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CMI", "label": "CMI", "shape": "dot", "size": 15, "title": "CMI : Cummins Inc.. Sector : Industrials. Connexions: 2", "x": -610.6764629876673, "y": 956.9338230498173}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CNP", "label": "CNP", "shape": "dot", "size": 15, "title": "CNP : CenterPoint Energy Inc.. Sector : Utilities. Connexions: 2", "x": -754.6148741189611, "y": 58.079779488519605}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "COF", "label": "COF", "shape": "dot", "size": 15, "title": "COF : Capital One Financial Corp.. Sector : Financial Services. Connexions: 3", "x": 642.6427613611696, "y": 1027.9405302982134}, {"color": "#ffae42", "font": {"color": "white"}, "id": "COIN", "label": "COIN", "shape": "dot", "size": 25, "title": "COIN : Coinbase Global Inc. Sector : Financial Services. Connexions: 8", "x": 494.22283518340265, "y": -1408.4148253564726}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "COP", "label": "COP", "shape": "dot", "size": 15, "title": "COP : ConocoPhillips. Sector : Energy. Connexions: 4", "x": -641.3161581815497, "y": 83.01184606990844}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "COST", "label": "COST", "shape": "dot", "size": 15, "title": "COST : Costco Wholesale Corp.. Sector : Consumer Defensive. Connexions: 3", "x": -579.5019780689107, "y": 822.6552451669972}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CPB", "label": "CPB", "shape": "dot", "size": 15, "title": "CPB : Campbell Soup Co.. Sector : Consumer Defensive. Connexions: 1", "x": -1625.938834288596, "y": 252.51276069753098}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CPNG", "label": "CPNG", "shape": "dot", "size": 15, "title": "CPNG : Coupang Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 201.73450049272134, "y": -1256.3304073182153}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CRC", "label": "CRC", "shape": "dot", "size": 15, "title": "CRC : California Resources Corp.. Sector : Energy. Connexions: 1", "x": -759.8278326521038, "y": 169.4666066888868}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CRM", "label": "CRM", "shape": "dot", "size": 15, "title": "CRM : Tableau Software Inc.. Sector : Technology. Connexions: 1", "x": 477.4258482619942, "y": -960.0207667543325}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CRWD", "label": "CRWD", "shape": "dot", "size": 15, "title": "CRWD : CrowdStrike Holdings Inc.. Sector : Technology. Connexions: 2", "x": 751.4883583805274, "y": -1088.1706369964725}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CRZBY", "label": "CRZBY", "shape": "dot", "size": 15, "title": "CRZBY : Commerzbank AG. Sector : Financial Services. Connexions: 1", "x": -132.55064575731873, "y": 392.30545542870505}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CSCO", "label": "CSCO", "shape": "dot", "size": 15, "title": "CSCO : Cisco Systems Inc.. Sector : Technology. Connexions: 1", "x": 353.6550984143783, "y": 720.0610687513006}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CSX", "label": "CSX", "shape": "dot", "size": 15, "title": "CSX : CSX Corp.. Sector : Industrials. Connexions: 1", "x": -424.8113241997922, "y": 1065.3504842834036}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CVNA", "label": "CVNA", "shape": "dot", "size": 15, "title": "CVNA : Carvana Co.. Sector : Consumer Cyclical. Connexions: 1", "x": 626.220876052038, "y": -1515.2564178775008}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "CVS", "label": "CVS", "shape": "dot", "size": 15, "title": "CVS : CVS Health Corp.. Sector : Healthcare. Connexions: 1", "x": -468.2870691819243, "y": 940.0837448903658}, {"color": "#ffae42", "font": {"color": "white"}, "id": "CVX", "label": "CVX", "shape": "dot", "size": 25, "title": "CVX : Chevron Corp.. Sector : Energy. Connexions: 5", "x": -567.9859611476452, "y": 93.12899041388218}, {"color": "#ffae42", "font": {"color": "white"}, "id": "CWK", "label": "CWK", "shape": "dot", "size": 25, "title": "CWK : Cushman \u0026 Wakefield. Sector : Real Estate. Connexions: 6", "x": 350.4973703883386, "y": 1080.2826981803073}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DAL", "label": "DAL", "shape": "dot", "size": 15, "title": "DAL : Delta Air Lines Inc.. Sector : Industrials. Connexions: 2", "x": 1187.0671659109933, "y": 1338.4110638228517}, {"color": "#ffae42", "font": {"color": "white"}, "id": "DASH", "label": "DASH", "shape": "dot", "size": 25, "title": "DASH : DoorDash Inc.. Sector : Consumer Cyclical. Connexions: 9", "x": 331.16218607782724, "y": -1253.406830357063}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DB", "label": "DB", "shape": "dot", "size": 15, "title": "DB : Deutsche Bank AG. Sector : Financial Services. Connexions: 4", "x": -198.58920413329167, "y": 395.2951717968537}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DBX", "label": "DBX", "shape": "dot", "size": 15, "title": "DBX : Dropbox Inc.. Sector : Technology. Connexions: 1", "x": 876.7513787165535, "y": -890.3373847078701}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DD", "label": "DD", "shape": "dot", "size": 15, "title": "DD : DuPont de Nemours, Inc.. Sector : Basic Materials. Connexions: 1", "x": 169.840792063981, "y": -192.0078142985443}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DE", "label": "DE", "shape": "dot", "size": 15, "title": "DE : Deere \u0026 Co.. Sector : Industrials. Connexions: 1", "x": -553.4122796374405, "y": 991.801770176482}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DELL", "label": "DELL", "shape": "dot", "size": 15, "title": "DELL : Dell Inc.. Sector : Technology. Connexions: 1", "x": 512.9362943266447, "y": 754.3905053935679}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DG", "label": "DG", "shape": "dot", "size": 15, "title": "DG : Dollar General. Sector : Consumer Defensive. Connexions: 2", "x": -780.11570655402, "y": 792.7726973937994}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DGX", "label": "DGX", "shape": "dot", "size": 15, "title": "DGX : Quest Diagnostics Inc.. Sector : Healthcare. Connexions: 1", "x": 305.37301370884927, "y": 1477.1881891796381}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DIDIY", "label": "DIDIY", "shape": "dot", "size": 15, "title": "DIDIY : Didi Global Inc.. Sector : Industrials. Connexions: 1", "x": 1267.5864645902736, "y": -1616.9974799225583}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DIS", "label": "DIS", "shape": "dot", "size": 15, "title": "DIS : Walt Disney Co.. Sector : Communication Services. Connexions: 2", "x": -426.05781524091947, "y": 982.8026055486591}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DKNG", "label": "DKNG", "shape": "dot", "size": 15, "title": "DKNG : DraftKings Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 610.603984156693, "y": -1210.4697833140744}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DKS", "label": "DKS", "shape": "dot", "size": 15, "title": "DKS : Dick\u2019s Sporting Goods Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": -108.87342164161107, "y": 1494.4338127758574}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DLAKY", "label": "DLAKY", "shape": "dot", "size": 15, "title": "DLAKY : DLAKY. Sector : Inconnu. Connexions: 2", "x": -15.828574964851516, "y": 256.41694699107126}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DLTR", "label": "DLTR", "shape": "dot", "size": 15, "title": "DLTR : DLTR. Sector : Inconnu. Connexions: 1", "x": -920.4150407349802, "y": 872.4451058692435}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DOCU", "label": "DOCU", "shape": "dot", "size": 15, "title": "DOCU : DocuSign Inc.. Sector : Technology. Connexions: 2", "x": 906.783198166962, "y": -975.8788844602842}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DUK", "label": "DUK", "shape": "dot", "size": 15, "title": "DUK : Duke Energy Corp.. Sector : Utilities. Connexions: 2", "x": -1009.2838242307552, "y": 1.2892352353580574}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "DVN", "label": "DVN", "shape": "dot", "size": 15, "title": "DVN : Devon Energy. Sector : Energy. Connexions: 3", "x": -697.7187561306858, "y": 9.283933839984885}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "E", "label": "E", "shape": "dot", "size": 15, "title": "E : Eni SpA. Sector : Energy. Connexions: 3", "x": -262.14950830154896, "y": 141.11513320751058}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EA", "label": "EA", "shape": "dot", "size": 15, "title": "EA : Electronic Arts Inc.. Sector : Technology. Connexions: 2", "x": 136.9820014878961, "y": -959.9174037083342}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EADSY", "label": "EADSY", "shape": "dot", "size": 15, "title": "EADSY : Airbus SE. Sector : Industrials. Connexions: 1", "x": -132.27339559527144, "y": -242.78519305410856}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EBAY", "label": "EBAY", "shape": "dot", "size": 15, "title": "EBAY : EBay Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": -292.3932930422452, "y": 646.4292884002276}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EFX", "label": "EFX", "shape": "dot", "size": 15, "title": "EFX : Equifax Inc.. Sector : Industrials. Connexions: 1", "x": -675.0959903597718, "y": 651.4092561794166}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ELV", "label": "ELV", "shape": "dot", "size": 15, "title": "ELV : Anthem Inc.. Sector : Healthcare. Connexions: 3", "x": 124.06710217013597, "y": 1119.22496624119}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EMN", "label": "EMN", "shape": "dot", "size": 15, "title": "EMN : Eastman Chemical Co.. Sector : Basic Materials. Connexions: 2", "x": 43.18186202251593, "y": -187.03227332944425}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ENB", "label": "ENB", "shape": "dot", "size": 15, "title": "ENB : Enbridge Inc.. Sector : Energy. Connexions: 2", "x": -709.3204512181969, "y": -114.60943048837406}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EQT", "label": "EQT", "shape": "dot", "size": 15, "title": "EQT : EQT Corp.. Sector : Energy. Connexions: 1", "x": -818.4073479244031, "y": -98.0739656920677}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ERIC", "label": "ERIC", "shape": "dot", "size": 15, "title": "ERIC : Telefonaktiebolaget LM Ericsson. Sector : Technology. Connexions: 2", "x": -308.6848852963416, "y": -110.74401523891525}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ESAIY", "label": "ESAIY", "shape": "dot", "size": 15, "title": "ESAIY : Eisai Co.. Sector : Healthcare. Connexions: 1", "x": -801.0207482757887, "y": -237.94766959508036}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ETR", "label": "ETR", "shape": "dot", "size": 15, "title": "ETR : Entergy Corp.. Sector : Utilities. Connexions: 4", "x": -893.6698435794794, "y": 26.933144475203356}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ETSY", "label": "ETSY", "shape": "dot", "size": 15, "title": "ETSY : Etsy. Sector : Consumer Cyclical. Connexions: 1", "x": 264.68271680230293, "y": -1286.1939486555045}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EXC", "label": "EXC", "shape": "dot", "size": 15, "title": "EXC : Exelon Corp.. Sector : Utilities. Connexions: 1", "x": -963.9049807444607, "y": 85.02329197442795}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "EXPGY", "label": "EXPGY", "shape": "dot", "size": 15, "title": "EXPGY : Experian PLC. Sector : Financial Services. Connexions: 1", "x": -51.39050757288243, "y": -4.406760440766416}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "F", "label": "F", "shape": "dot", "size": 15, "title": "F : Ford Motor Co.. Sector : Consumer Cyclical. Connexions: 1", "x": 302.5911057639955, "y": 777.4048154962086}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FCX", "label": "FCX", "shape": "dot", "size": 15, "title": "FCX : Freeport-McMoRan Inc.. Sector : Basic Materials. Connexions: 3", "x": -472.6744421897902, "y": -23.66127970976101}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FDX", "label": "FDX", "shape": "dot", "size": 15, "title": "FDX : FedEx Corp.. Sector : Industrials. Connexions: 2", "x": -530.7664075225427, "y": 789.6747234579954}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FITB", "label": "FITB", "shape": "dot", "size": 15, "title": "FITB : Fifth Third Bancorp. Sector : Financial Services. Connexions: 2", "x": 445.9683160101303, "y": 935.8054084340138}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FNMA", "label": "FNMA", "shape": "dot", "size": 15, "title": "FNMA : FNMA. Sector : Inconnu. Connexions: 1", "x": 163.7032379645437, "y": 630.7913373615206}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FOXA", "label": "FOXA", "shape": "dot", "size": 15, "title": "FOXA : FOXA. Sector : Inconnu. Connexions: 2", "x": 592.1693593103652, "y": 1096.7376609046835}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "FUJIY", "label": "FUJIY", "shape": "dot", "size": 15, "title": "FUJIY : Fujifilm Holdings Corp.. Sector : Healthcare. Connexions: 1", "x": -414.2725457536319, "y": -480.8879561776506}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GE", "label": "GE", "shape": "dot", "size": 15, "title": "GE : General Electric Co.. Sector : Industrials. Connexions: 1", "x": -477.0020587275439, "y": 811.0401232147614}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GEN", "label": "GEN", "shape": "dot", "size": 15, "title": "GEN : Symantec Corp.. Sector : Technology. Connexions: 1", "x": -88.10980783924936, "y": 1129.4025903337401}, {"color": "#ffae42", "font": {"color": "white"}, "id": "GFS", "label": "GFS", "shape": "dot", "size": 25, "title": "GFS : GlobalFoundries Inc.. Sector : Technology. Connexions: 6", "x": -33.061071991897315, "y": -531.8203087569535}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GILD", "label": "GILD", "shape": "dot", "size": 15, "title": "GILD : Gilead Sciences Inc.. Sector : Healthcare. Connexions: 1", "x": -1672.4636463653164, "y": -457.1971559896419}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GIS", "label": "GIS", "shape": "dot", "size": 15, "title": "GIS : General Mills Inc.. Sector : Consumer Defensive. Connexions: 2", "x": -1494.7290593621542, "y": 202.6823997417666}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GLNCY", "label": "GLNCY", "shape": "dot", "size": 15, "title": "GLNCY : Glencore PLC. Sector : Basic Materials. Connexions: 1", "x": -545.745469395369, "y": 2.8343562005526164}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GM", "label": "GM", "shape": "dot", "size": 15, "title": "GM : General Motors Co.. Sector : Consumer Cyclical. Connexions: 2", "x": 197.20410910855463, "y": 816.2899179226952}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GME", "label": "GME", "shape": "dot", "size": 15, "title": "GME : GameStop Corp. Sector : Consumer Cyclical. Connexions: 2", "x": 1144.694031720801, "y": -1002.0456789544552}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GOLD", "label": "GOLD", "shape": "dot", "size": 15, "title": "GOLD : Barrick Gold Corp.. Sector : Basic Materials. Connexions: 1", "x": -233.51454275698356, "y": -675.4298099927092}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GOOGL", "label": "GOOGL", "shape": "dot", "size": 15, "title": "GOOGL : Alphabet Inc.. Sector : Technology. Connexions: 1", "x": 417.1747280542067, "y": -689.5423358032858}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GRPN", "label": "GRPN", "shape": "dot", "size": 15, "title": "GRPN : Groupon Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 671.7262334880248, "y": 1312.817523157018}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GS", "label": "GS", "shape": "dot", "size": 15, "title": "GS : Goldman Sachs Group. Sector : Financial Services. Connexions: 2", "x": -162.01269523604472, "y": 621.4957634385655}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "GSK", "label": "GSK", "shape": "dot", "size": 15, "title": "GSK : GlaxoSmithKline PLC. Sector : Healthcare. Connexions: 2", "x": 450.4773632986909, "y": 36.55920607276834}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HAL", "label": "HAL", "shape": "dot", "size": 15, "title": "HAL : Halliburton Co.. Sector : Energy. Connexions: 2", "x": -724.8586111455488, "y": 117.35116022377933}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HAS", "label": "HAS", "shape": "dot", "size": 15, "title": "HAS : Hasbro Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": -540.4681159512312, "y": 613.0919759396925}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HCA", "label": "HCA", "shape": "dot", "size": 15, "title": "HCA : HCA Healthcare Inc.. Sector : Healthcare. Connexions: 3", "x": 320.92424576205997, "y": 1279.7108592365585}, {"color": "#ffae42", "font": {"color": "white"}, "id": "HD", "label": "HD", "shape": "dot", "size": 25, "title": "HD : Home Depot Inc.. Sector : Consumer Cyclical. Connexions: 7", "x": -436.14980999958897, "y": 726.2940806234341}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HIG", "label": "HIG", "shape": "dot", "size": 15, "title": "HIG : Hartford Financial Services Group Inc.. Sector : Financial Services. Connexions: 1", "x": 63.51802827887498, "y": 917.2040140169905}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HLT", "label": "HLT", "shape": "dot", "size": 15, "title": "HLT : Hilton Worldwide. Sector : Consumer Cyclical. Connexions: 4", "x": 809.129335731473, "y": 1329.919949427956}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HMC", "label": "HMC", "shape": "dot", "size": 15, "title": "HMC : Honda Motor Co.. Sector : Consumer Cyclical. Connexions: 4", "x": -216.15113233194273, "y": -302.7261124405972}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HNHPF", "label": "HNHPF", "shape": "dot", "size": 15, "title": "HNHPF : Hon Hai Precision Industry Co., Ltd. (Foxconn). Sector : Technology. Connexions: 1", "x": 81.65444107411273, "y": -229.04518811014063}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HOG", "label": "HOG", "shape": "dot", "size": 15, "title": "HOG : Harley-Davidson Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": -268.62370083851437, "y": 679.8039480004065}, {"color": "#ff4d4d", "font": {"color": "white"}, "id": "HON", "label": "HON", "shape": "dot", "size": 40, "title": "HON : Honeywell International Inc.. Sector : Industrials. Connexions: 12", "x": -368.723620692633, "y": 847.9725974847071}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HOOD", "label": "HOOD", "shape": "dot", "size": 15, "title": "HOOD : Robinhood Markets Inc.. Sector : Financial Services. Connexions: 1", "x": 807.2541360541302, "y": -1372.7017469923312}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HPE", "label": "HPE", "shape": "dot", "size": 15, "title": "HPE : Hewlett Packard Enterprise Co.. Sector : Technology. Connexions: 3", "x": 220.91309219694526, "y": 781.8838944412648}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HPQ", "label": "HPQ", "shape": "dot", "size": 15, "title": "HPQ : HP Inc.. Sector : Technology. Connexions: 2", "x": 369.1851173999708, "y": 780.6906291357517}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HSBC", "label": "HSBC", "shape": "dot", "size": 15, "title": "HSBC : HSBC Holdings PLC. Sector : Financial Services. Connexions: 3", "x": -115.54586372281628, "y": 265.0043565716913}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HTZ", "label": "HTZ", "shape": "dot", "size": 15, "title": "HTZ : Hertz Global Holdings Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": -28.2602605507637, "y": 1071.6845850336338}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "HUM", "label": "HUM", "shape": "dot", "size": 15, "title": "HUM : Humana Inc.. Sector : Healthcare. Connexions: 1", "x": 92.4310133987645, "y": 1268.0438652905382}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IBKR", "label": "IBKR", "shape": "dot", "size": 15, "title": "IBKR : Interactive Brokers Group Inc.. Sector : Financial Services. Connexions: 1", "x": 144.30052835016753, "y": 593.7435695876479}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IBM", "label": "IBM", "shape": "dot", "size": 15, "title": "IBM : International Business Machines Corp.. Sector : Technology. Connexions: 1", "x": -286.45225234342587, "y": 920.792117253072}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ICE", "label": "ICE", "shape": "dot", "size": 15, "title": "ICE : Intercontinental Exchange Inc.. Sector : Financial Services. Connexions: 2", "x": -289.34780778802633, "y": 1012.3280243702137}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IFNNY", "label": "IFNNY", "shape": "dot", "size": 15, "title": "IFNNY : Infineon Technologies AG. Sector : Technology. Connexions: 2", "x": 3.8499399889469488, "y": -325.33552987263363}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ILMN", "label": "ILMN", "shape": "dot", "size": 15, "title": "ILMN : Illumina Inc.. Sector : Healthcare. Connexions: 1", "x": 666.5806605524148, "y": -1209.3863653674034}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INO", "label": "INO", "shape": "dot", "size": 15, "title": "INO : Inovio Pharmaceuticals Inc.. Sector : Healthcare. Connexions: 1", "x": 520.2604352739762, "y": -1593.0167552230494}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INTC", "label": "INTC", "shape": "dot", "size": 15, "title": "INTC : Intel Corporation. Sector : Technology. Connexions: 2", "x": 235.79461346012587, "y": -627.7054640049273}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "INTU", "label": "INTU", "shape": "dot", "size": 15, "title": "INTU : Intuit Inc.. Sector : Technology. Connexions: 1", "x": 420.93461391329475, "y": -951.0844912071835}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IQ", "label": "IQ", "shape": "dot", "size": 15, "title": "IQ : iQiyi Inc.. Sector : Communication Services. Connexions: 1", "x": 1416.4880105867846, "y": -1545.7931712285167}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ISNPY", "label": "ISNPY", "shape": "dot", "size": 15, "title": "ISNPY : Intesa Sanpaolo SpA. Sector : Financial Services. Connexions: 2", "x": -74.62608796608615, "y": 279.90977540822627}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "IVZ", "label": "IVZ", "shape": "dot", "size": 15, "title": "IVZ : Invesco Ltd.. Sector : Financial Services. Connexions: 1", "x": -263.84049604345444, "y": 722.7893174695538}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "JBAXY", "label": "JBAXY", "shape": "dot", "size": 15, "title": "JBAXY : Julius Baer Group Ltd.. Sector : Financial Services. Connexions: 1", "x": -46.98298396466066, "y": -254.85245601227746}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "JBLU", "label": "JBLU", "shape": "dot", "size": 15, "title": "JBLU : JetBlue Airways Corp.. Sector : Industrials. Connexions: 1", "x": 1274.1181691690801, "y": 1402.0710816964274}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "JD", "label": "JD", "shape": "dot", "size": 15, "title": "JD : JD.com Inc.. Sector : Consumer Cyclical. Connexions: 3", "x": 1028.2586687709845, "y": -1860.8080776997176}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "JEF", "label": "JEF", "shape": "dot", "size": 15, "title": "JEF : Jefferies Financial Group Inc.. Sector : Financial Services. Connexions: 2", "x": -326.9462618974187, "y": 693.7367168912948}, {"color": "#ffae42", "font": {"color": "white"}, "id": "JNJ", "label": "JNJ", "shape": "dot", "size": 25, "title": "JNJ : Johnson \u0026 Johnson. Sector : Healthcare. Connexions: 7", "x": -1529.6808171653486, "y": -167.760107935559}, {"color": "#ffae42", "font": {"color": "white"}, "id": "JPM", "label": "JPM", "shape": "dot", "size": 25, "title": "JPM : JPMorgan Chase \u0026 Co. Sector : Financial Services. Connexions: 6", "x": -165.0210599418373, "y": 675.7657602432671}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KBH", "label": "KBH", "shape": "dot", "size": 15, "title": "KBH : KB Home. Sector : Consumer Cyclical. Connexions: 2", "x": -564.7330668291089, "y": 704.60735582478}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KHC", "label": "KHC", "shape": "dot", "size": 15, "title": "KHC : Kraft Heinz Co.. Sector : Consumer Defensive. Connexions: 1", "x": -1480.872704459921, "y": 136.5887008745841}, {"color": "#ffae42", "font": {"color": "white"}, "id": "KKR", "label": "KKR", "shape": "dot", "size": 25, "title": "KKR : KKR \u0026 Co Inc. Sector : Financial Services. Connexions: 5", "x": -244.1468174016938, "y": 961.9752493754995}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KMB", "label": "KMB", "shape": "dot", "size": 15, "title": "KMB : Kimberly-Clark Corp.. Sector : Consumer Defensive. Connexions: 2", "x": -1375.2745060378497, "y": -283.403945160874}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KMI", "label": "KMI", "shape": "dot", "size": 15, "title": "KMI : Kinder Morgan Inc.. Sector : Energy. Connexions: 2", "x": -617.9739693441705, "y": -10.61795292277845}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KNX", "label": "KNX", "shape": "dot", "size": 15, "title": "KNX : Knight-Swift Transportation Holdings Inc.. Sector : Industrials. Connexions: 1", "x": -887.1141332044423, "y": 1078.1183380697591}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KO", "label": "KO", "shape": "dot", "size": 15, "title": "KO : Coca-Cola Co.. Sector : Consumer Defensive. Connexions: 2", "x": -1157.7050800646007, "y": -28.45073096696096}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KODK", "label": "KODK", "shape": "dot", "size": 15, "title": "KODK : Eastman Kodak Company. Sector : Technology. Connexions: 1", "x": 871.1591253120789, "y": -1279.8513403884258}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KR", "label": "KR", "shape": "dot", "size": 15, "title": "KR : Kroger Co.. Sector : Consumer Defensive. Connexions: 2", "x": -830.4010058966851, "y": 1087.0313947754291}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "KSS", "label": "KSS", "shape": "dot", "size": 15, "title": "KSS : Kohl\u2019s Corp.. Sector : Consumer Cyclical. Connexions: 2", "x": 0.0439096023121361, "y": 1221.1011210136132}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LCID", "label": "LCID", "shape": "dot", "size": 15, "title": "LCID : Lucid Group, Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 774.8366015089815, "y": -1305.0835705928582}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LEN", "label": "LEN", "shape": "dot", "size": 15, "title": "LEN : Lennar Corp.. Sector : Consumer Cyclical. Connexions: 1", "x": -664.1010756085955, "y": 706.091488527771}, {"color": "#ffae42", "font": {"color": "white"}, "id": "LEVI", "label": "LEVI", "shape": "dot", "size": 25, "title": "LEVI : Levi Strauss \u0026 Co.. Sector : Consumer Cyclical. Connexions: 5", "x": 50.839444030359644, "y": 1025.6762224338468}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LKNCY", "label": "LKNCY", "shape": "dot", "size": 15, "title": "LKNCY : Luckin Coffee Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 1301.259928332276, "y": -1472.4907360035052}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LLY", "label": "LLY", "shape": "dot", "size": 15, "title": "LLY : Eli Lilly \u0026 Co.. Sector : Healthcare. Connexions: 2", "x": -1637.8826142639398, "y": -48.99489179338018}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LMT", "label": "LMT", "shape": "dot", "size": 15, "title": "LMT : Lockheed Martin Corp.. Sector : Industrials. Connexions: 1", "x": -631.3064954787915, "y": 1131.049508412761}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LNVGY", "label": "LNVGY", "shape": "dot", "size": 15, "title": "LNVGY : Lenovo Group Ltd.. Sector : Technology. Connexions: 1", "x": 1221.9290388856598, "y": -1910.9156796393772}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LOW", "label": "LOW", "shape": "dot", "size": 15, "title": "LOW : Lowe\u2019s Cos.. Sector : Consumer Cyclical. Connexions: 1", "x": -466.1246002519247, "y": 675.8999913376064}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LPLA", "label": "LPLA", "shape": "dot", "size": 15, "title": "LPLA : LPL Financial. Sector : Financial Services. Connexions: 1", "x": 123.01140516677755, "y": 555.6370051777519}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LVMUY", "label": "LVMUY", "shape": "dot", "size": 15, "title": "LVMUY : LVMH Mo\u00ebt Hennessy Louis Vuitton SE. Sector : Consumer Cyclical. Connexions: 1", "x": -7.252918764437259, "y": -230.08836213503926}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LVS", "label": "LVS", "shape": "dot", "size": 15, "title": "LVS : Las Vegas Sands Corp.. Sector : Consumer Cyclical. Connexions: 1", "x": 874.154356474801, "y": 1704.033057141108}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LYFT", "label": "LYFT", "shape": "dot", "size": 15, "title": "LYFT : Lyft Inc.. Sector : Industrials. Connexions: 1", "x": 154.43620914038465, "y": -1461.577580102277}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LYV", "label": "LYV", "shape": "dot", "size": 15, "title": "LYV : Live Nation Entertainment Inc.. Sector : Communication Services. Connexions: 1", "x": 775.1573272313598, "y": 1467.3393292331457}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "LZB", "label": "LZB", "shape": "dot", "size": 15, "title": "LZB : La-Z-Boy Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 176.75567803189944, "y": 1097.29409231377}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "M", "label": "M", "shape": "dot", "size": 15, "title": "M : Macy\u2019s Inc.. Sector : Consumer Cyclical. Connexions: 4", "x": -17.69858893803297, "y": 1353.2976448036454}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MA", "label": "MA", "shape": "dot", "size": 15, "title": "MA : Mastercard Inc.. Sector : Financial Services. Connexions: 1", "x": 933.2502540345702, "y": 1008.3790199383009}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MAR", "label": "MAR", "shape": "dot", "size": 15, "title": "MAR : Marriott International Inc.. Sector : Consumer Cyclical. Connexions: 3", "x": 811.7790590164852, "y": 1238.8074374729629}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MARA", "label": "MARA", "shape": "dot", "size": 15, "title": "MARA : Marathon Digital Holdings Inc.. Sector : Technology. Connexions: 1", "x": 478.51390424378997, "y": -1492.9817334416402}, {"color": "#ffae42", "font": {"color": "white"}, "id": "MBGYY", "label": "MBGYY", "shape": "dot", "size": 25, "title": "MBGYY : Daimler AG. Sector : Consumer Cyclical. Connexions: 5", "x": -112.20400502372907, "y": -81.70506456097431}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MCD", "label": "MCD", "shape": "dot", "size": 15, "title": "MCD : McDonald\u2019s Corp.. Sector : Consumer Cyclical. Connexions: 1", "x": -753.2842041175427, "y": 704.5091426196506}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MCK", "label": "MCK", "shape": "dot", "size": 15, "title": "MCK : McKesson Corp.. Sector : Healthcare. Connexions: 2", "x": -1685.012606527926, "y": -99.83526941306344}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MCO", "label": "MCO", "shape": "dot", "size": 15, "title": "MCO : Moody\u2019s Corp.. Sector : Financial Services. Connexions: 3", "x": -368.3740260492913, "y": 673.9509042925529}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MDLZ", "label": "MDLZ", "shape": "dot", "size": 15, "title": "MDLZ : Mondelez International Inc.. Sector : Consumer Defensive. Connexions: 3", "x": -1365.9937555458125, "y": 86.52069442439338}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MDT", "label": "MDT", "shape": "dot", "size": 15, "title": "MDT : Medtronic PLC. Sector : Healthcare. Connexions: 1", "x": -304.977757814329, "y": 964.9374630903998}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MET", "label": "MET", "shape": "dot", "size": 15, "title": "MET : MetLife Inc.. Sector : Financial Services. Connexions: 1", "x": 126.57563214288601, "y": 853.8738527916713}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "META", "label": "META", "shape": "dot", "size": 15, "title": "META : Meta Platforms Inc.. Sector : Technology. Connexions: 1", "x": 473.01059079094307, "y": -916.407066281798}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MGM", "label": "MGM", "shape": "dot", "size": 15, "title": "MGM : MGM Resorts International. Sector : Consumer Cyclical. Connexions: 2", "x": 832.5672591462251, "y": 1474.6724343444605}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MKTX", "label": "MKTX", "shape": "dot", "size": 15, "title": "MKTX : MarketAxess Holdings Inc.. Sector : Financial Services. Connexions: 1", "x": -327.5956053863312, "y": 638.106352328783}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MMM", "label": "MMM", "shape": "dot", "size": 15, "title": "MMM : 3M Co.. Sector : Industrials. Connexions: 1", "x": -431.23022171757214, "y": 824.2210756933895}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MO", "label": "MO", "shape": "dot", "size": 15, "title": "MO : Altria Group Inc.. Sector : Consumer Defensive. Connexions: 1", "x": -1477.4179565607337, "y": 61.90724185110206}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MORN", "label": "MORN", "shape": "dot", "size": 15, "title": "MORN : Morningstar Inc.. Sector : Financial Services. Connexions: 1", "x": 100.3816140359718, "y": -1140.7159826664422}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MRK", "label": "MRK", "shape": "dot", "size": 15, "title": "MRK : Merck \u0026 Co.. Sector : Healthcare. Connexions: 1", "x": -1543.5072593234227, "y": -318.3775141524923}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MRNA", "label": "MRNA", "shape": "dot", "size": 15, "title": "MRNA : Moderna Inc.. Sector : Healthcare. Connexions: 2", "x": 132.39251465056307, "y": -1339.4093470910564}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MS", "label": "MS", "shape": "dot", "size": 15, "title": "MS : Morgan Stanley. Sector : Financial Services. Connexions: 1", "x": -102.18163573609678, "y": 584.327167725869}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MSCI", "label": "MSCI", "shape": "dot", "size": 15, "title": "MSCI : MSCI Inc.. Sector : Financial Services. Connexions: 2", "x": 278.0004926890236, "y": -1053.5800765925544}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MSFT", "label": "MSFT", "shape": "dot", "size": 15, "title": "MSFT : Microsoft Corporation. Sector : Technology. Connexions: 4", "x": 296.25725510403106, "y": -748.6183639378863}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MSTR", "label": "MSTR", "shape": "dot", "size": 15, "title": "MSTR : MicroStrategy Inc.. Sector : Technology. Connexions: 1", "x": 553.563333698032, "y": -1466.1409336511545}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MTB", "label": "MTB", "shape": "dot", "size": 15, "title": "MTB : M\u0026T Bank Corp.. Sector : Financial Services. Connexions: 1", "x": 305.91858512679335, "y": 820.4499641713808}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MTCH", "label": "MTCH", "shape": "dot", "size": 15, "title": "MTCH : Match Group Inc.. Sector : Communication Services. Connexions: 1", "x": 380.29922570938777, "y": -1201.8208283225974}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "MU", "label": "MU", "shape": "dot", "size": 15, "title": "MU : Micron Technology Inc.. Sector : Technology. Connexions: 2", "x": 450.5271474595772, "y": -423.6212383778296}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NCLH", "label": "NCLH", "shape": "dot", "size": 15, "title": "NCLH : Norwegian Cruise Line Holdings Ltd.. Sector : Consumer Cyclical. Connexions: 3", "x": 1014.9844241047476, "y": 1249.9680799128425}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NDAQ", "label": "NDAQ", "shape": "dot", "size": 15, "title": "NDAQ : Nasdaq Inc.. Sector : Financial Services. Connexions: 2", "x": -252.5932943226163, "y": 841.8777031404494}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NEM", "label": "NEM", "shape": "dot", "size": 15, "title": "NEM : Newmont Mining Corp.. Sector : Basic Materials. Connexions: 1", "x": -613.8005724620791, "y": -102.74585898855639}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NFLX", "label": "NFLX", "shape": "dot", "size": 15, "title": "NFLX : Netflix Inc.. Sector : Communication Services. Connexions: 1", "x": 93.48694096813664, "y": -1526.2820961136706}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NIO", "label": "NIO", "shape": "dot", "size": 15, "title": "NIO : NIO Inc.. Sector : Consumer Cyclical. Connexions: 3", "x": 812.3392420727433, "y": -1470.3936580198}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NKE", "label": "NKE", "shape": "dot", "size": 15, "title": "NKE : Nike Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": -225.8270171311197, "y": 751.6275112447821}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NMR", "label": "NMR", "shape": "dot", "size": 15, "title": "NMR : Nomura Holdings Inc.. Sector : Financial Services. Connexions: 1", "x": -361.97880272079067, "y": -493.77089314111646}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NOC", "label": "NOC", "shape": "dot", "size": 15, "title": "NOC : Northrop Grumman Corp.. Sector : Industrials. Connexions: 2", "x": -554.8549311570217, "y": 1048.6872266463577}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NOK", "label": "NOK", "shape": "dot", "size": 15, "title": "NOK : Nokia Corp.. Sector : Technology. Connexions: 1", "x": -432.08391631302504, "y": -224.48606306122633}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NSANY", "label": "NSANY", "shape": "dot", "size": 15, "title": "NSANY : Nissan Motor Co.. Sector : Consumer Cyclical. Connexions: 1", "x": -221.91092665188384, "y": -390.3294206445978}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NSRGY", "label": "NSRGY", "shape": "dot", "size": 15, "title": "NSRGY : Nestl\u00e9 SA. Sector : Consumer Defensive. Connexions: 2", "x": 455.86502889553316, "y": 99.76181493863056}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NTDOY", "label": "NTDOY", "shape": "dot", "size": 15, "title": "NTDOY : Nintendo Co.. Sector : Communication Services. Connexions: 1", "x": -583.1769988604973, "y": -599.148404298653}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NTES", "label": "NTES", "shape": "dot", "size": 15, "title": "NTES : NetEase Inc.. Sector : Communication Services. Connexions: 1", "x": 1100.3475068098367, "y": -1591.8490072378388}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NU", "label": "NU", "shape": "dot", "size": 15, "title": "NU : Nubank. Sector : Financial Services. Connexions: 2", "x": 959.5381445080844, "y": -1032.7914667262842}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NUE", "label": "NUE", "shape": "dot", "size": 15, "title": "NUE : Nucor Corp.. Sector : Basic Materials. Connexions: 1", "x": -491.86443429825624, "y": 109.72805402771968}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NVAX", "label": "NVAX", "shape": "dot", "size": 15, "title": "NVAX : Novavax Inc.. Sector : Healthcare. Connexions: 1", "x": 418.7415319072852, "y": -1592.1884328930587}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NVDA", "label": "NVDA", "shape": "dot", "size": 15, "title": "NVDA : Nvidia Corp.. Sector : Technology. Connexions: 1", "x": -140.01369630446032, "y": -608.1818188844283}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NVS", "label": "NVS", "shape": "dot", "size": 15, "title": "NVS : Novartis AG. Sector : Healthcare. Connexions: 4", "x": 302.87070460973104, "y": 48.36754521703953}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NWSA", "label": "NWSA", "shape": "dot", "size": 15, "title": "NWSA : News Corp.. Sector : Communication Services. Connexions: 1", "x": -451.07357555073014, "y": 601.71035792044}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "NXPI", "label": "NXPI", "shape": "dot", "size": 15, "title": "NXPI : NXP Semiconductors NV. Sector : Technology. Connexions: 3", "x": 62.39034167092862, "y": -450.98417123870433}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ODFL", "label": "ODFL", "shape": "dot", "size": 15, "title": "ODFL : Old Dominion Freight Line Inc.. Sector : Industrials. Connexions: 1", "x": -958.7291353608696, "y": 1007.4860181959322}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OKTA", "label": "OKTA", "shape": "dot", "size": 15, "title": "OKTA : Okta Inc.. Sector : Technology. Connexions: 2", "x": 925.739501918391, "y": -1089.81548036961}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OPEN", "label": "OPEN", "shape": "dot", "size": 15, "title": "OPEN : Opendoor Labs Inc.. Sector : Real Estate. Connexions: 3", "x": 581.3324649425704, "y": -1371.976523592724}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ORCL", "label": "ORCL", "shape": "dot", "size": 15, "title": "ORCL : Oracle Corp.. Sector : Technology. Connexions: 1", "x": 196.89968820701384, "y": -792.3369742646879}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OTLY", "label": "OTLY", "shape": "dot", "size": 15, "title": "OTLY : Oatly Group AB. Sector : Consumer Defensive. Connexions: 1", "x": 339.599911626581, "y": -1551.1124954333793}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "OXY", "label": "OXY", "shape": "dot", "size": 15, "title": "OXY : Occidental Petroleum. Sector : Energy. Connexions: 1", "x": -785.1860765878748, "y": -22.44485862831908}, {"color": "#ffae42", "font": {"color": "white"}, "id": "PATH", "label": "PATH", "shape": "dot", "size": 25, "title": "PATH : UiPath Inc.. Sector : Technology. Connexions: 5", "x": 738.4324304274647, "y": -983.3133234828438}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PBR", "label": "PBR", "shape": "dot", "size": 15, "title": "PBR : Petrobras. Sector : Energy. Connexions: 1", "x": -484.66036344571285, "y": -106.19791462875851}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PCG", "label": "PCG", "shape": "dot", "size": 15, "title": "PCG : PG\u0026E Corporation. Sector : Utilities. Connexions: 1", "x": -969.3594081026401, "y": -118.5312935937095}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PDD", "label": "PDD", "shape": "dot", "size": 15, "title": "PDD : Pinduoduo Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 1078.085587753383, "y": -1968.9693878240257}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PEP", "label": "PEP", "shape": "dot", "size": 15, "title": "PEP : PepsiCo Inc.. Sector : Consumer Defensive. Connexions: 4", "x": -1277.7299210821309, "y": -45.864026470561775}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PFE", "label": "PFE", "shape": "dot", "size": 15, "title": "PFE : Pfizer Inc.. Sector : Healthcare. Connexions: 1", "x": -1621.581966069301, "y": -150.91695822011442}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PG", "label": "PG", "shape": "dot", "size": 15, "title": "PG : Procter \u0026 Gamble. Sector : Consumer Defensive. Connexions: 4", "x": -1376.0036886224648, "y": -145.5771989301594}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PINS", "label": "PINS", "shape": "dot", "size": 15, "title": "PINS : Pinterest Inc.. Sector : Technology. Connexions: 2", "x": 287.42319210345715, "y": -1024.246503364147}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PLD", "label": "PLD", "shape": "dot", "size": 15, "title": "PLD : Prologis Inc.. Sector : Real Estate. Connexions: 1", "x": 405.63388947784034, "y": 1316.235864955377}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PLTR", "label": "PLTR", "shape": "dot", "size": 15, "title": "PLTR : Palantir Technologies Inc.. Sector : Technology. Connexions: 1", "x": 873.7874123472734, "y": -1032.349320313026}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PLUG", "label": "PLUG", "shape": "dot", "size": 15, "title": "PLUG : Plug Power. Sector : Industrials. Connexions: 1", "x": 832.2102924193355, "y": -1256.4695059096418}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PM", "label": "PM", "shape": "dot", "size": 15, "title": "PM : Philip Morris International Inc.. Sector : Consumer Defensive. Connexions: 2", "x": -1359.7757053397565, "y": 4.847307648442368}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PNC", "label": "PNC", "shape": "dot", "size": 15, "title": "PNC : PNC Financial Services Group Inc.. Sector : Financial Services. Connexions: 1", "x": 72.7922312183895, "y": 739.1946209748561}, {"color": "#ffae42", "font": {"color": "white"}, "id": "PRU", "label": "PRU", "shape": "dot", "size": 25, "title": "PRU : Prudential Financial Inc.. Sector : Financial Services. Connexions: 8", "x": 77.39122838379538, "y": 861.713026782241}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PSX", "label": "PSX", "shape": "dot", "size": 15, "title": "PSX : Phillips 66. Sector : Energy. Connexions: 1", "x": -699.4900155842679, "y": 188.18295550623927}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "PTON", "label": "PTON", "shape": "dot", "size": 15, "title": "PTON : Peloton Interactive Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 563.5774028230647, "y": -1229.4666835531439}, {"color": "#ffae42", "font": {"color": "white"}, "id": "PYPL", "label": "PYPL", "shape": "dot", "size": 25, "title": "PYPL : PayPal Holdings Inc.. Sector : Financial Services. Connexions: 9", "x": 400.5093864936714, "y": -1018.2452377839364}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "QCOM", "label": "QCOM", "shape": "dot", "size": 15, "title": "QCOM : Qualcomm Inc.. Sector : Technology. Connexions: 1", "x": -89.43308595513649, "y": -619.5468563836768}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "QDEL", "label": "QDEL", "shape": "dot", "size": 15, "title": "QDEL : Quidel Corp.. Sector : Healthcare. Connexions: 1", "x": -203.39932652862262, "y": 1193.1341817609155}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "R", "label": "R", "shape": "dot", "size": 15, "title": "R : Ryder System Inc.. Sector : Industrials. Connexions: 2", "x": -702.4313224450468, "y": 881.7264715418049}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RBLX", "label": "RBLX", "shape": "dot", "size": 15, "title": "RBLX : Roblox Corp.. Sector : Communication Services. Connexions: 1", "x": 513.767893892093, "y": -1101.5189618372044}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RCL", "label": "RCL", "shape": "dot", "size": 15, "title": "RCL : Royal Caribbean Group. Sector : Consumer Cyclical. Connexions: 2", "x": 941.9761894024153, "y": 1231.3729192364472}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "REGN", "label": "REGN", "shape": "dot", "size": 15, "title": "REGN : Regeneron Pharmaceuticals Inc.. Sector : Healthcare. Connexions: 1", "x": -1794.7399201120115, "y": -336.94626497174477}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RF", "label": "RF", "shape": "dot", "size": 15, "title": "RF : Regions Financial Corp.. Sector : Financial Services. Connexions: 3", "x": 339.09697837064186, "y": 936.4837421669434}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RGR", "label": "RGR", "shape": "dot", "size": 15, "title": "RGR : Sturm, Ruger \u0026 Co.. Sector : Industrials. Connexions: 1", "x": -734.9430207087485, "y": 1127.6070843792343}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RHHBY", "label": "RHHBY", "shape": "dot", "size": 15, "title": "RHHBY : Roche Holding AG. Sector : Healthcare. Connexions: 1", "x": 393.5135806856587, "y": -7.996942038624054}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RIO", "label": "RIO", "shape": "dot", "size": 15, "title": "RIO : Rio Tinto PLC. Sector : Basic Materials. Connexions: 2", "x": -448.29254461895374, "y": 52.34063894557251}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RIOT", "label": "RIOT", "shape": "dot", "size": 15, "title": "RIOT : Riot Blockchain Inc.. Sector : Technology. Connexions: 1", "x": 414.00056370018035, "y": -1450.9625940420156}, {"color": "#ffae42", "font": {"color": "white"}, "id": "RIVN", "label": "RIVN", "shape": "dot", "size": 25, "title": "RIVN : Rivian Automotive Inc.. Sector : Consumer Cyclical. Connexions: 9", "x": 705.9280342975958, "y": -1341.4827978126614}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RKT", "label": "RKT", "shape": "dot", "size": 15, "title": "RKT : Rocket Cos.. Sector : Financial Services. Connexions: 1", "x": 461.68793800937823, "y": -1583.4989883199953}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RKUNY", "label": "RKUNY", "shape": "dot", "size": 15, "title": "RKUNY : Rakuten Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 111.7446479883411, "y": -185.9821810006315}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RNLSY", "label": "RNLSY", "shape": "dot", "size": 15, "title": "RNLSY : Renault SA. Sector : Consumer Cyclical. Connexions: 1", "x": -161.2318444797828, "y": -116.9519910062563}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ROKU", "label": "ROKU", "shape": "dot", "size": 15, "title": "ROKU : Roku Inc.. Sector : Communication Services. Connexions: 1", "x": 335.81522989587717, "y": -1328.3148806530182}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RTX", "label": "RTX", "shape": "dot", "size": 15, "title": "RTX : Raytheon Co.. Sector : Industrials. Connexions: 3", "x": -458.162446623622, "y": 892.2420878731162}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RY", "label": "RY", "shape": "dot", "size": 15, "title": "RY : Royal Bank of Canada. Sector : Financial Services. Connexions: 1", "x": -68.80017570870264, "y": 676.1865032273253}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "RYAAY", "label": "RYAAY", "shape": "dot", "size": 15, "title": "RYAAY : Ryanair. Sector : Industrials. Connexions: 1", "x": 159.56630912354768, "y": 239.10152473958553}, {"color": "#ffae42", "font": {"color": "white"}, "id": "SAN", "label": "SAN", "shape": "dot", "size": 25, "title": "SAN : Banco Santander, S.A.. Sector : Financial Services. Connexions: 6", "x": -209.98696627868043, "y": 278.8077003014683}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SAP", "label": "SAP", "shape": "dot", "size": 15, "title": "SAP : SAP SE. Sector : Technology. Connexions: 1", "x": -258.9448930542252, "y": -68.6544412216697}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SBUX", "label": "SBUX", "shape": "dot", "size": 15, "title": "SBUX : Starbucks Corp.. Sector : Consumer Cyclical. Connexions: 2", "x": -574.1493908722856, "y": 665.5450992310307}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SCBFF", "label": "SCBFF", "shape": "dot", "size": 15, "title": "SCBFF : Standard Chartered PLC. Sector : Financial Services. Connexions: 1", "x": 7.918288267965135, "y": 226.09908492671323}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SCGLY", "label": "SCGLY", "shape": "dot", "size": 15, "title": "SCGLY : Soci\u00e9t\u00e9 G\u00e9n\u00e9rale SA. Sector : Financial Services. Connexions: 1", "x": -180.50091671644043, "y": 224.76852643515323}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SCHW", "label": "SCHW", "shape": "dot", "size": 15, "title": "SCHW : Charles Schwab Corp.. Sector : Financial Services. Connexions: 3", "x": 5.418215932936677, "y": 599.5238423966607}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SFIX", "label": "SFIX", "shape": "dot", "size": 15, "title": "SFIX : Stitch Fix. Sector : Consumer Cyclical. Connexions: 1", "x": 643.6293580490428, "y": -1251.159046208508}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SFTBY", "label": "SFTBY", "shape": "dot", "size": 15, "title": "SFTBY : SoftBank Group Corp.. Sector : Financial Services. Connexions: 2", "x": 1184.2242693760973, "y": -1767.3083330592235}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SHAK", "label": "SHAK", "shape": "dot", "size": 15, "title": "SHAK : Shake Shack Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 203.45981509912494, "y": -1542.2967892762495}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SHEL", "label": "SHEL", "shape": "dot", "size": 15, "title": "SHEL : Royal Dutch Shell PLC. Sector : Energy. Connexions: 3", "x": -439.46418763388056, "y": 122.88251073640369}, {"color": "#ffae42", "font": {"color": "white"}, "id": "SHOP", "label": "SHOP", "shape": "dot", "size": 25, "title": "SHOP : Shopify Inc.. Sector : Technology. Connexions: 6", "x": 477.4003756198646, "y": -1157.5181603990227}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SIEGY", "label": "SIEGY", "shape": "dot", "size": 15, "title": "SIEGY : Siemens AG. Sector : Industrials. Connexions: 4", "x": -190.46182123789976, "y": -10.265305746340207}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SMCI", "label": "SMCI", "shape": "dot", "size": 15, "title": "SMCI : Super Micro Computer Inc.. Sector : Technology. Connexions: 1", "x": -181.2779322737962, "y": -668.5701385206995}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SNAP", "label": "SNAP", "shape": "dot", "size": 15, "title": "SNAP : Snap Inc.. Sector : Technology. Connexions: 1", "x": 140.50152276328095, "y": -1101.4667590176336}, {"color": "#ffae42", "font": {"color": "white"}, "id": "SNOW", "label": "SNOW", "shape": "dot", "size": 25, "title": "SNOW : Snowflake Inc.. Sector : Technology. Connexions: 5", "x": 630.6871535158048, "y": -1072.9098284564393}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SNY", "label": "SNY", "shape": "dot", "size": 15, "title": "SNY : Sanofi SA. Sector : Healthcare. Connexions: 2", "x": 139.8796048488692, "y": 43.61391150503874}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SOFI", "label": "SOFI", "shape": "dot", "size": 15, "title": "SOFI : SoFi Technologies, Inc.. Sector : Financial Services. Connexions: 2", "x": 510.0795222472562, "y": -1351.1113495725674}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SONO", "label": "SONO", "shape": "dot", "size": 15, "title": "SONO : Sonos Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 274.1680919904383, "y": -1203.3350730097234}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SONY", "label": "SONY", "shape": "dot", "size": 15, "title": "SONY : Sony Group Corp.. Sector : Technology. Connexions: 2", "x": -453.3648873837277, "y": -455.50598857405527}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SPCE", "label": "SPCE", "shape": "dot", "size": 15, "title": "SPCE : Virgin Galactic Holdings, Inc.. Sector : Industrials. Connexions: 1", "x": 624.3738068166195, "y": -1299.8383908611881}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SPGI", "label": "SPGI", "shape": "dot", "size": 15, "title": "SPGI : S\u0026P Global Inc.. Sector : Financial Services. Connexions: 1", "x": -407.3921322254413, "y": 600.8931529065737}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SPOT", "label": "SPOT", "shape": "dot", "size": 15, "title": "SPOT : Spotify Technology SA. Sector : Communication Services. Connexions: 3", "x": 185.16949397130807, "y": -1344.5979623563694}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "SSNLF", "label": "SSNLF", "shape": "dot", "size": 15, "title": "SSNLF : Samsung Electronics Co. Sector : Technology. Connexions: 1", "x": 1312.5703708303054, "y": -1053.1331156499812}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "STLA", "label": "STLA", "shape": "dot", "size": 15, "title": "STLA : Stellantis NV. Sector : Consumer Cyclical. Connexions: 1", "x": -6.333003109270091, "y": -186.20660532532222}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "STT", "label": "STT", "shape": "dot", "size": 15, "title": "STT : State Street Corp.. Sector : Financial Services. Connexions: 1", "x": -53.66266441372501, "y": 585.9150380253882}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "STZ", "label": "STZ", "shape": "dot", "size": 15, "title": "STZ : Constellation Brands Inc.. Sector : Consumer Defensive. Connexions: 1", "x": -349.59489838787084, "y": 1002.548536504986}, {"color": "#ffae42", "font": {"color": "white"}, "id": "SYF", "label": "SYF", "shape": "dot", "size": 25, "title": "SYF : Synchrony Financial. Sector : Financial Services. Connexions: 5", "x": 564.9586726087811, "y": 974.8257992667985}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "T", "label": "T", "shape": "dot", "size": 15, "title": "T : AT\u0026T Inc.. Sector : Communication Services. Connexions: 2", "x": -548.6401285632816, "y": 1286.3838954798184}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TAK", "label": "TAK", "shape": "dot", "size": 15, "title": "TAK : Takeda Pharmaceutical Co.. Sector : Healthcare. Connexions: 1", "x": -300.3827308746985, "y": -427.04354542776053}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TCEHY", "label": "TCEHY", "shape": "dot", "size": 15, "title": "TCEHY : Tencent Holdings Ltd. Sector : Communication Services. Connexions: 2", "x": 1103.5892883049128, "y": -1780.6767793857487}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TD", "label": "TD", "shape": "dot", "size": 15, "title": "TD : Toronto-Dominion Bank. Sector : Financial Services. Connexions: 3", "x": -121.28385004979675, "y": 718.6838145068774}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TGT", "label": "TGT", "shape": "dot", "size": 15, "title": "TGT : Target Corp.. Sector : Consumer Defensive. Connexions: 2", "x": -581.003500517426, "y": 753.5188690878458}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "THC", "label": "THC", "shape": "dot", "size": 15, "title": "THC : Tenet Healthcare Corp.. Sector : Healthcare. Connexions: 1", "x": 353.575442597075, "y": 1400.8264728464867}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TLRY", "label": "TLRY", "shape": "dot", "size": 15, "title": "TLRY : Tilray Inc.. Sector : Healthcare. Connexions: 1", "x": 707.8339740136136, "y": -1484.894531665615}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TM", "label": "TM", "shape": "dot", "size": 15, "title": "TM : Toyota Motor Corp.. Sector : Consumer Cyclical. Connexions: 4", "x": -310.7164667938461, "y": -367.33895151906455}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TME", "label": "TME", "shape": "dot", "size": 15, "title": "TME : Tencent Music Entertainment Group. Sector : Communication Services. Connexions: 2", "x": 1280.9415117015242, "y": -1537.2182559186924}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TMUS", "label": "TMUS", "shape": "dot", "size": 15, "title": "TMUS : T-Mobile US Inc.. Sector : Technology. Connexions: 1", "x": 347.52219759921496, "y": -975.8353354389776}, {"color": "#ff4d4d", "font": {"color": "white"}, "id": "TROW", "label": "TROW", "shape": "dot", "size": 40, "title": "TROW : T. Rowe Price Group Inc.. Sector : Financial Services. Connexions: 14", "x": -297.30232960303937, "y": 747.783891629355}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TRP", "label": "TRP", "shape": "dot", "size": 15, "title": "TRP : TC Energy Corp.. Sector : Energy. Connexions: 1", "x": -792.2168938637009, "y": -180.47111567366085}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TRU", "label": "TRU", "shape": "dot", "size": 15, "title": "TRU : TransUnion. Sector : Industrials. Connexions: 2", "x": -520.2601480460124, "y": 640.0889627900889}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TRV", "label": "TRV", "shape": "dot", "size": 15, "title": "TRV : TRV. Sector : Inconnu. Connexions: 2", "x": 226.53640462925537, "y": 1018.3963355276435}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TSLA", "label": "TSLA", "shape": "dot", "size": 15, "title": "TSLA : Tesla Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 738.9254483326667, "y": -1428.0680685640539}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TSM", "label": "TSM", "shape": "dot", "size": 15, "title": "TSM : Taiwan Semiconductor Manufacturing Co.. Sector : Technology. Connexions: 1", "x": 272.7385456438764, "y": -490.5675679812826}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TSN", "label": "TSN", "shape": "dot", "size": 15, "title": "TSN : Tyson Foods Inc.. Sector : Consumer Defensive. Connexions: 1", "x": 471.24387030461367, "y": 1143.146999953361}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TTE", "label": "TTE", "shape": "dot", "size": 15, "title": "TTE : TotalEnergies. Sector : Energy. Connexions: 3", "x": -347.356555775641, "y": 128.02968679146198}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TTWO", "label": "TTWO", "shape": "dot", "size": 15, "title": "TTWO : Zynga Inc.. Sector : Technology. Connexions: 1", "x": -41.91089615311089, "y": -1082.9328456242135}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "TWLO", "label": "TWLO", "shape": "dot", "size": 15, "title": "TWLO : Twilio Inc.. Sector : Technology. Connexions: 2", "x": 1084.0068563549523, "y": -1068.7674883923335}, {"color": "#ffae42", "font": {"color": "white"}, "id": "TXN", "label": "TXN", "shape": "dot", "size": 25, "title": "TXN : Texas Instruments. Sector : Technology. Connexions: 5", "x": 187.85696943930054, "y": -502.34472669890283}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UA", "label": "UA", "shape": "dot", "size": 15, "title": "UA : Under Armour. Sector : Consumer Cyclical. Connexions: 1", "x": 87.92573174644888, "y": 1140.653180796072}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UAL", "label": "UAL", "shape": "dot", "size": 15, "title": "UAL : UAL. Sector : Inconnu. Connexions: 3", "x": 1104.017931792455, "y": 1338.7049258711763}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UBER", "label": "UBER", "shape": "dot", "size": 15, "title": "UBER : Uber Technologies Inc.. Sector : Industrials. Connexions: 4", "x": 229.93758011118308, "y": -1380.3033095623562}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UBS", "label": "UBS", "shape": "dot", "size": 15, "title": "UBS : UBS Group AG. Sector : Financial Services. Connexions: 2", "x": -180.2704144244796, "y": 516.9819465856154}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UL", "label": "UL", "shape": "dot", "size": 15, "title": "UL : UL. Sector : Inconnu. Connexions: 1", "x": 615.4059482706317, "y": 109.95091681053692}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ULTA", "label": "ULTA", "shape": "dot", "size": 15, "title": "ULTA : Ulta Beauty. Sector : Consumer Cyclical. Connexions: 1", "x": 419.5599790007102, "y": 1202.7750055568727}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UNCRY", "label": "UNCRY", "shape": "dot", "size": 15, "title": "UNCRY : UniCredit SpA. Sector : Financial Services. Connexions: 1", "x": 22.690945883901374, "y": 277.36890556444865}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UNH", "label": "UNH", "shape": "dot", "size": 15, "title": "UNH : UnitedHealth Group Inc.. Sector : Healthcare. Connexions: 1", "x": 172.67659705920238, "y": 1216.501279362329}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UNP", "label": "UNP", "shape": "dot", "size": 15, "title": "UNP : Union Pacific Corp.. Sector : Industrials. Connexions: 2", "x": -385.722829212696, "y": 955.7054189083425}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UNPRF", "label": "UNPRF", "shape": "dot", "size": 15, "title": "UNPRF : UNPRF. Sector : Inconnu. Connexions: 1", "x": 86.81582226307862, "y": -57.80656417819326}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UPS", "label": "UPS", "shape": "dot", "size": 15, "title": "UPS : United Parcel Service Inc.. Sector : Industrials. Connexions: 2", "x": -384.7786263362813, "y": 752.7664347588657}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "UPWK", "label": "UPWK", "shape": "dot", "size": 15, "title": "UPWK : Upwork. Sector : Technology. Connexions: 1", "x": 234.9924303724764, "y": -1223.9530047541136}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "URBN", "label": "URBN", "shape": "dot", "size": 15, "title": "URBN : Urban Outfitters Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 46.69853114314991, "y": 1487.6534140172394}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "USB", "label": "USB", "shape": "dot", "size": 15, "title": "USB : U.S. Bancorp. Sector : Financial Services. Connexions: 2", "x": 120.76688726655723, "y": 795.5185686700681}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "V", "label": "V", "shape": "dot", "size": 15, "title": "V : Visa Inc.. Sector : Financial Services. Connexions: 2", "x": 855.4073297230767, "y": 1030.8618550451758}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VALE", "label": "VALE", "shape": "dot", "size": 15, "title": "VALE : Vale SA. Sector : Basic Materials. Connexions: 2", "x": -404.31191011162184, "y": -16.363515332078222}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VIRT", "label": "VIRT", "shape": "dot", "size": 15, "title": "VIRT : Virtu Financial Inc.. Sector : Financial Services. Connexions: 1", "x": 371.3429835970135, "y": -1616.068436323787}, {"color": "#ff4d4d", "font": {"color": "white"}, "id": "VLVLY", "label": "VLVLY", "shape": "dot", "size": 40, "title": "VLVLY : Volvo AB. Sector : Industrials. Connexions: 13", "x": -79.85477822519225, "y": -197.48814461069736}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VOD", "label": "VOD", "shape": "dot", "size": 15, "title": "VOD : Vodafone Group PLC. Sector : Communication Services. Connexions: 1", "x": -303.6352929231792, "y": 278.0039602335093}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VTRS", "label": "VTRS", "shape": "dot", "size": 15, "title": "VTRS : Mylan NV. Sector : Healthcare. Connexions: 1", "x": -131.95923442777413, "y": -316.41994729941905}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VWAGY", "label": "VWAGY", "shape": "dot", "size": 15, "title": "VWAGY : Volkswagen AG. Sector : Consumer Cyclical. Connexions: 1", "x": -37.8717723852316, "y": -72.34626041895977}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VYGVQ", "label": "VYGVQ", "shape": "dot", "size": 15, "title": "VYGVQ : Voyager Digital Ltd.. Sector : Financial Services. Connexions: 1", "x": 717.328374564311, "y": -1687.6888535882208}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "VZ", "label": "VZ", "shape": "dot", "size": 15, "title": "VZ : Verizon Communications Inc.. Sector : Communication Services. Connexions: 1", "x": -621.7010672977073, "y": 1374.0077363207633}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WBD", "label": "WBD", "shape": "dot", "size": 15, "title": "WBD : Discovery Inc.. Sector : Communication Services. Connexions: 1", "x": 639.2274812056228, "y": 1227.8612526321806}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WDC", "label": "WDC", "shape": "dot", "size": 15, "title": "WDC : Western Digital Corp.. Sector : Technology. Connexions: 1", "x": 603.6860313006447, "y": -385.1166929681715}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WERN", "label": "WERN", "shape": "dot", "size": 15, "title": "WERN : Werner Enterprises Inc.. Sector : Industrials. Connexions: 3", "x": -833.6280758463253, "y": 982.7609481690904}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WFC", "label": "WFC", "shape": "dot", "size": 15, "title": "WFC : Wells Fargo. Sector : Financial Services. Connexions: 4", "x": 24.53531642484141, "y": 784.2381118604923}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WHR", "label": "WHR", "shape": "dot", "size": 15, "title": "WHR : Whirlpool Corp.. Sector : Consumer Cyclical. Connexions: 1", "x": -223.47114937866087, "y": 785.7085801472509}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WMG", "label": "WMG", "shape": "dot", "size": 15, "title": "WMG : Warner Music Group Corp.. Sector : Communication Services. Connexions: 1", "x": 11.821516545546825, "y": -1440.8947281649528}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WMT", "label": "WMT", "shape": "dot", "size": 15, "title": "WMT : Walmart Inc.. Sector : Consumer Defensive. Connexions: 2", "x": -702.6782808798987, "y": 945.067298118705}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "WYNN", "label": "WYNN", "shape": "dot", "size": 15, "title": "WYNN : Wynn Resorts. Sector : Consumer Cyclical. Connexions: 2", "x": 847.1805384026264, "y": 1599.1852233376371}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "XIACF", "label": "XIACF", "shape": "dot", "size": 15, "title": "XIACF : Xiaomi. Sector : Technology. Connexions: 1", "x": 956.4025709193796, "y": -1895.4804801861892}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "XOM", "label": "XOM", "shape": "dot", "size": 15, "title": "XOM : Exxon Mobil. Sector : Energy. Connexions: 2", "x": -604.1482772659658, "y": 142.33775284512444}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "XPEV", "label": "XPEV", "shape": "dot", "size": 15, "title": "XPEV : XPeng Inc.. Sector : Consumer Cyclical. Connexions: 3", "x": 899.747268169067, "y": -1518.634861715737}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "XPO", "label": "XPO", "shape": "dot", "size": 15, "title": "XPO : XPO Logistics Inc.. Sector : Industrials. Connexions: 1", "x": -168.92192473184664, "y": -266.0154834754923}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "XRX", "label": "XRX", "shape": "dot", "size": 15, "title": "XRX : XRX. Sector : Inconnu. Connexions: 1", "x": 469.9964151320682, "y": 1063.7231716525462}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "YAHOY", "label": "YAHOY", "shape": "dot", "size": 15, "title": "YAHOY : LY Corporation. Sector : Communication Services. Connexions: 1", "x": 1346.2573553443992, "y": -1828.9447773770771}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "YELP", "label": "YELP", "shape": "dot", "size": 15, "title": "YELP : Yelp Inc.. Sector : Communication Services. Connexions: 1", "x": 64.43805738023232, "y": -1458.0907346388958}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "YMM", "label": "YMM", "shape": "dot", "size": 15, "title": "YMM : Full Truck Alliance Co.. Sector : Industrials. Connexions: 4", "x": 1153.3639338087346, "y": -1543.1809776120645}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "YUMC", "label": "YUMC", "shape": "dot", "size": 15, "title": "YUMC : Yum China Holdings Inc.. Sector : Consumer Cyclical. Connexions: 1", "x": 895.9539503726937, "y": -1901.3793121797385}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Z", "label": "Z", "shape": "dot", "size": 15, "title": "Z : Zillow Group Inc.. Sector : Communication Services. Connexions: 1", "x": 553.5134469533475, "y": -1547.3871385829405}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "ZM", "label": "ZM", "shape": "dot", "size": 15, "title": "ZM : Zoom Video Communications Inc.. Sector : Communication Services. Connexions: 1", "x": 815.2323530979972, "y": -893.8591881279949}]);
+                  edges = new vis.DataSet([{"color": "rgba(150,150,150,0.4)", "from": "AA", "to": "FCX"}, {"color": "rgba(150,150,150,0.4)", "from": "AA", "to": "CART"}, {"color": "rgba(150,150,150,0.4)", "from": "AA", "to": "ESAIY"}, {"color": "rgba(150,150,150,0.4)", "from": "AAL", "to": "UAL"}, {"color": "rgba(150,150,150,0.4)", "from": "AAPL", "to": "PYPL"}, {"color": "rgba(150,150,150,0.4)", "from": "ABBV", "to": "AMGN"}, {"color": "rgba(150,150,150,0.4)", "from": "ABNB", "to": "DASH"}, {"color": "rgba(150,150,150,0.4)", "from": "ABNB", "to": "SHAK"}, {"color": "rgba(150,150,150,0.4)", "from": "ABT", "to": "JNJ"}, {"color": "rgba(150,150,150,0.4)", "from": "ACI", "to": "KR"}, {"color": "rgba(150,150,150,0.4)", "from": "ADBE", "to": "MSFT"}, {"color": "rgba(150,150,150,0.4)", "from": "ADBE", "to": "PYPL"}, {"color": "rgba(150,150,150,0.4)", "from": "ADBE", "to": "EA"}, {"color": "rgba(150,150,150,0.4)", "from": "ADDYY", "to": "BASFY"}, {"color": "rgba(150,150,150,0.4)", "from": "ADP", "to": "HON"}, {"color": "rgba(150,150,150,0.4)", "from": "ADT", "to": "BAM"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "COIN"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "SHOP"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "RIVN"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "OPEN"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "SOFI"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "DKNG"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "PTON"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "BYND"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "SFIX"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "SPCE"}, {"color": "rgba(150,150,150,0.4)", "from": "AFRM", "to": "ILMN"}, {"color": "rgba(150,150,150,0.4)", "from": "AIG", "to": "SYF"}, {"color": "rgba(150,150,150,0.4)", "from": "AIRYY", "to": "CICHY"}, {"color": "rgba(150,150,150,0.4)", "from": "ALL", "to": "PRU"}, {"color": "rgba(150,150,150,0.4)", "from": "ALL", "to": "TRV"}, {"color": "rgba(150,150,150,0.4)", "from": "ALLY", "to": "COF"}, {"color": "rgba(150,150,150,0.4)", "from": "ALLY", "to": "GRPN"}, {"color": "rgba(150,150,150,0.4)", "from": "ALSMY", "to": "BNPQY"}, {"color": "rgba(150,150,150,0.4)", "from": "AMAT", "to": "TXN"}, {"color": "rgba(150,150,150,0.4)", "from": "AMAT", "to": "MU"}, {"color": "rgba(150,150,150,0.4)", "from": "AMC", "to": "GME"}, {"color": "rgba(150,150,150,0.4)", "from": "AMD", "to": "GFS"}, {"color": "rgba(150,150,150,0.4)", "from": "AMGN", "to": "JNJ"}, {"color": "rgba(150,150,150,0.4)", "from": "AMGN", "to": "GILD"}, {"color": "rgba(150,150,150,0.4)", "from": "AMGN", "to": "REGN"}, {"color": "rgba(150,150,150,0.4)", "from": "AMGN", "to": "BIIB"}, {"color": "rgba(150,150,150,0.4)", "from": "AMKBY", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "AMZN", "to": "SNOW"}, {"color": "rgba(150,150,150,0.4)", "from": "AON", "to": "CB"}, {"color": "rgba(150,150,150,0.4)", "from": "APO", "to": "KKR"}, {"color": "rgba(150,150,150,0.4)", "from": "ARES", "to": "KKR"}, {"color": "rgba(150,150,150,0.4)", "from": "ASAN", "to": "DOCU"}, {"color": "rgba(150,150,150,0.4)", "from": "ASAN", "to": "SNOW"}, {"color": "rgba(150,150,150,0.4)", "from": "ASAN", "to": "NU"}, {"color": "rgba(150,150,150,0.4)", "from": "AVGO", "to": "TXN"}, {"color": "rgba(150,150,150,0.4)", "from": "AXP", "to": "COF"}, {"color": "rgba(150,150,150,0.4)", "from": "AXP", "to": "V"}, {"color": "rgba(150,150,150,0.4)", "from": "AXP", "to": "MAR"}, {"color": "rgba(150,150,150,0.4)", "from": "AZN", "to": "GSK"}, {"color": "rgba(150,150,150,0.4)", "from": "BA", "to": "RTX"}, {"color": "rgba(150,150,150,0.4)", "from": "BABA", "to": "JD"}, {"color": "rgba(150,150,150,0.4)", "from": "BABA", "to": "TCEHY"}, {"color": "rgba(150,150,150,0.4)", "from": "BABA", "to": "BIDU"}, {"color": "rgba(150,150,150,0.4)", "from": "BABA", "to": "BILI"}, {"color": "rgba(150,150,150,0.4)", "from": "BABA", "to": "XIACF"}, {"color": "rgba(150,150,150,0.4)", "from": "BABA", "to": "YUMC"}, {"color": "rgba(150,150,150,0.4)", "from": "BABA", "to": "SFTBY"}, {"color": "rgba(150,150,150,0.4)", "from": "BAC", "to": "JPM"}, {"color": "rgba(150,150,150,0.4)", "from": "BAC", "to": "WFC"}, {"color": "rgba(150,150,150,0.4)", "from": "BAC", "to": "C"}, {"color": "rgba(150,150,150,0.4)", "from": "BACHY", "to": "CICHY"}, {"color": "rgba(150,150,150,0.4)", "from": "BACHY", "to": "HSBC"}, {"color": "rgba(150,150,150,0.4)", "from": "BAM", "to": "BMO"}, {"color": "rgba(150,150,150,0.4)", "from": "BAM", "to": "HTZ"}, {"color": "rgba(150,150,150,0.4)", "from": "BAM", "to": "GEN"}, {"color": "rgba(150,150,150,0.4)", "from": "BAM", "to": "QDEL"}, {"color": "rgba(150,150,150,0.4)", "from": "BASFY", "to": "SIEGY"}, {"color": "rgba(150,150,150,0.4)", "from": "BASFY", "to": "MBGYY"}, {"color": "rgba(150,150,150,0.4)", "from": "BASFY", "to": "E"}, {"color": "rgba(150,150,150,0.4)", "from": "BASFY", "to": "BAYRY"}, {"color": "rgba(150,150,150,0.4)", "from": "BASFY", "to": "BUD"}, {"color": "rgba(150,150,150,0.4)", "from": "BAYRY", "to": "SNY"}, {"color": "rgba(150,150,150,0.4)", "from": "BB", "to": "RIVN"}, {"color": "rgba(150,150,150,0.4)", "from": "BBBY", "to": "COIN"}, {"color": "rgba(150,150,150,0.4)", "from": "BBVA", "to": "SAN"}, {"color": "rgba(150,150,150,0.4)", "from": "BBWI", "to": "M"}, {"color": "rgba(150,150,150,0.4)", "from": "BBY", "to": "LEVI"}, {"color": "rgba(150,150,150,0.4)", "from": "BCS", "to": "DB"}, {"color": "rgba(150,150,150,0.4)", "from": "BEKE", "to": "JD"}, {"color": "rgba(150,150,150,0.4)", "from": "BHP", "to": "RIO"}, {"color": "rgba(150,150,150,0.4)", "from": "BHP", "to": "VALE"}, {"color": "rgba(150,150,150,0.4)", "from": "BHP", "to": "FCX"}, {"color": "rgba(150,150,150,0.4)", "from": "BHP", "to": "TTE"}, {"color": "rgba(150,150,150,0.4)", "from": "BHP", "to": "NUE"}, {"color": "rgba(150,150,150,0.4)", "from": "BILI", "to": "YMM"}, {"color": "rgba(150,150,150,0.4)", "from": "BILI", "to": "NTES"}, {"color": "rgba(150,150,150,0.4)", "from": "BILI", "to": "XPEV"}, {"color": "rgba(150,150,150,0.4)", "from": "BIRD", "to": "DOCU"}, {"color": "rgba(150,150,150,0.4)", "from": "BJ", "to": "COST"}, {"color": "rgba(150,150,150,0.4)", "from": "BK", "to": "STT"}, {"color": "rgba(150,150,150,0.4)", "from": "BK", "to": "JPM"}, {"color": "rgba(150,150,150,0.4)", "from": "BK", "to": "SCHW"}, {"color": "rgba(150,150,150,0.4)", "from": "BKNG", "to": "HLT"}, {"color": "rgba(150,150,150,0.4)", "from": "BKR", "to": "HAL"}, {"color": "rgba(150,150,150,0.4)", "from": "BLK", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "BLK", "to": "KKR"}, {"color": "rgba(150,150,150,0.4)", "from": "BMBL", "to": "MTCH"}, {"color": "rgba(150,150,150,0.4)", "from": "BMBL", "to": "SHOP"}, {"color": "rgba(150,150,150,0.4)", "from": "BMBL", "to": "SONO"}, {"color": "rgba(150,150,150,0.4)", "from": "BMO", "to": "TD"}, {"color": "rgba(150,150,150,0.4)", "from": "BMY", "to": "LLY"}, {"color": "rgba(150,150,150,0.4)", "from": "BNPQY", "to": "SCGLY"}, {"color": "rgba(150,150,150,0.4)", "from": "BNPQY", "to": "SAN"}, {"color": "rgba(150,150,150,0.4)", "from": "BNPQY", "to": "ISNPY"}, {"color": "rgba(150,150,150,0.4)", "from": "BNPQY", "to": "DLAKY"}, {"color": "rgba(150,150,150,0.4)", "from": "BNTX", "to": "MRNA"}, {"color": "rgba(150,150,150,0.4)", "from": "BP", "to": "SHEL"}, {"color": "rgba(150,150,150,0.4)", "from": "BRK-B", "to": "SYF"}, {"color": "rgba(150,150,150,0.4)", "from": "BX", "to": "KKR"}, {"color": "rgba(150,150,150,0.4)", "from": "BYDDY", "to": "XPEV"}, {"color": "rgba(150,150,150,0.4)", "from": "BYND", "to": "OTLY"}, {"color": "rgba(150,150,150,0.4)", "from": "C", "to": "FNMA"}, {"color": "rgba(150,150,150,0.4)", "from": "CAH", "to": "MCK"}, {"color": "rgba(150,150,150,0.4)", "from": "CAT", "to": "DE"}, {"color": "rgba(150,150,150,0.4)", "from": "CAT", "to": "CMI"}, {"color": "rgba(150,150,150,0.4)", "from": "CAT", "to": "HON"}, {"color": "rgba(150,150,150,0.4)", "from": "CB", "to": "TRV"}, {"color": "rgba(150,150,150,0.4)", "from": "CBOE", "to": "CME"}, {"color": "rgba(150,150,150,0.4)", "from": "CBRE", "to": "CWK"}, {"color": "rgba(150,150,150,0.4)", "from": "CBRE", "to": "PLD"}, {"color": "rgba(150,150,150,0.4)", "from": "CCL", "to": "NCLH"}, {"color": "rgba(150,150,150,0.4)", "from": "CG", "to": "KKR"}, {"color": "rgba(150,150,150,0.4)", "from": "CHTR", "to": "CMCSA"}, {"color": "rgba(150,150,150,0.4)", "from": "CHWY", "to": "PATH"}, {"color": "rgba(150,150,150,0.4)", "from": "CI", "to": "ELV"}, {"color": "rgba(150,150,150,0.4)", "from": "CI", "to": "PRU"}, {"color": "rgba(150,150,150,0.4)", "from": "CL", "to": "PG"}, {"color": "rgba(150,150,150,0.4)", "from": "CLX", "to": "KMB"}, {"color": "rgba(150,150,150,0.4)", "from": "CMA", "to": "MTB"}, {"color": "rgba(150,150,150,0.4)", "from": "CMA", "to": "USB"}, {"color": "rgba(150,150,150,0.4)", "from": "CMA", "to": "RF"}, {"color": "rgba(150,150,150,0.4)", "from": "CMCSA", "to": "DIS"}, {"color": "rgba(150,150,150,0.4)", "from": "CMCSA", "to": "T"}, {"color": "rgba(150,150,150,0.4)", "from": "CME", "to": "ICE"}, {"color": "rgba(150,150,150,0.4)", "from": "CMG", "to": "UBER"}, {"color": "rgba(150,150,150,0.4)", "from": "CMI", "to": "RGR"}, {"color": "rgba(150,150,150,0.4)", "from": "CNP", "to": "ETR"}, {"color": "rgba(150,150,150,0.4)", "from": "CNP", "to": "CVX"}, {"color": "rgba(150,150,150,0.4)", "from": "COF", "to": "SYF"}, {"color": "rgba(150,150,150,0.4)", "from": "COIN", "to": "MSTR"}, {"color": "rgba(150,150,150,0.4)", "from": "COIN", "to": "RIOT"}, {"color": "rgba(150,150,150,0.4)", "from": "COIN", "to": "MARA"}, {"color": "rgba(150,150,150,0.4)", "from": "COIN", "to": "RKT"}, {"color": "rgba(150,150,150,0.4)", "from": "COIN", "to": "INO"}, {"color": "rgba(150,150,150,0.4)", "from": "COIN", "to": "VIRT"}, {"color": "rgba(150,150,150,0.4)", "from": "COP", "to": "CVX"}, {"color": "rgba(150,150,150,0.4)", "from": "COP", "to": "DVN"}, {"color": "rgba(150,150,150,0.4)", "from": "COP", "to": "HAL"}, {"color": "rgba(150,150,150,0.4)", "from": "COP", "to": "CRC"}, {"color": "rgba(150,150,150,0.4)", "from": "COST", "to": "WMT"}, {"color": "rgba(150,150,150,0.4)", "from": "COST", "to": "HD"}, {"color": "rgba(150,150,150,0.4)", "from": "CPB", "to": "GIS"}, {"color": "rgba(150,150,150,0.4)", "from": "CPNG", "to": "DASH"}, {"color": "rgba(150,150,150,0.4)", "from": "CRM", "to": "PYPL"}, {"color": "rgba(150,150,150,0.4)", "from": "CRWD", "to": "OKTA"}, {"color": "rgba(150,150,150,0.4)", "from": "CRWD", "to": "SNOW"}, {"color": "rgba(150,150,150,0.4)", "from": "CRZBY", "to": "DB"}, {"color": "rgba(150,150,150,0.4)", "from": "CSCO", "to": "HPE"}, {"color": "rgba(150,150,150,0.4)", "from": "CSX", "to": "UNP"}, {"color": "rgba(150,150,150,0.4)", "from": "CVNA", "to": "OPEN"}, {"color": "rgba(150,150,150,0.4)", "from": "CVS", "to": "HON"}, {"color": "rgba(150,150,150,0.4)", "from": "CVX", "to": "XOM"}, {"color": "rgba(150,150,150,0.4)", "from": "CVX", "to": "SHEL"}, {"color": "rgba(150,150,150,0.4)", "from": "CVX", "to": "KMI"}, {"color": "rgba(150,150,150,0.4)", "from": "CWK", "to": "RF"}, {"color": "rgba(150,150,150,0.4)", "from": "CWK", "to": "XRX"}, {"color": "rgba(150,150,150,0.4)", "from": "CWK", "to": "HCA"}, {"color": "rgba(150,150,150,0.4)", "from": "CWK", "to": "ULTA"}, {"color": "rgba(150,150,150,0.4)", "from": "CWK", "to": "TSN"}, {"color": "rgba(150,150,150,0.4)", "from": "DAL", "to": "UAL"}, {"color": "rgba(150,150,150,0.4)", "from": "DAL", "to": "JBLU"}, {"color": "rgba(150,150,150,0.4)", "from": "DASH", "to": "UBER"}, {"color": "rgba(150,150,150,0.4)", "from": "DASH", "to": "SHOP"}, {"color": "rgba(150,150,150,0.4)", "from": "DASH", "to": "ETSY"}, {"color": "rgba(150,150,150,0.4)", "from": "DASH", "to": "ROKU"}, {"color": "rgba(150,150,150,0.4)", "from": "DASH", "to": "UPWK"}, {"color": "rgba(150,150,150,0.4)", "from": "DASH", "to": "SPOT"}, {"color": "rgba(150,150,150,0.4)", "from": "DASH", "to": "MRNA"}, {"color": "rgba(150,150,150,0.4)", "from": "DB", "to": "SAN"}, {"color": "rgba(150,150,150,0.4)", "from": "DB", "to": "UBS"}, {"color": "rgba(150,150,150,0.4)", "from": "DBX", "to": "PATH"}, {"color": "rgba(150,150,150,0.4)", "from": "DD", "to": "EMN"}, {"color": "rgba(150,150,150,0.4)", "from": "DELL", "to": "HPQ"}, {"color": "rgba(150,150,150,0.4)", "from": "DG", "to": "DLTR"}, {"color": "rgba(150,150,150,0.4)", "from": "DG", "to": "TGT"}, {"color": "rgba(150,150,150,0.4)", "from": "DGX", "to": "HCA"}, {"color": "rgba(150,150,150,0.4)", "from": "DIDIY", "to": "YMM"}, {"color": "rgba(150,150,150,0.4)", "from": "DIS", "to": "HON"}, {"color": "rgba(150,150,150,0.4)", "from": "DKS", "to": "M"}, {"color": "rgba(150,150,150,0.4)", "from": "DLAKY", "to": "RYAAY"}, {"color": "rgba(150,150,150,0.4)", "from": "DUK", "to": "ETR"}, {"color": "rgba(150,150,150,0.4)", "from": "DUK", "to": "KO"}, {"color": "rgba(150,150,150,0.4)", "from": "DVN", "to": "OXY"}, {"color": "rgba(150,150,150,0.4)", "from": "DVN", "to": "EQT"}, {"color": "rgba(150,150,150,0.4)", "from": "E", "to": "TTE"}, {"color": "rgba(150,150,150,0.4)", "from": "E", "to": "SAN"}, {"color": "rgba(150,150,150,0.4)", "from": "EA", "to": "TTWO"}, {"color": "rgba(150,150,150,0.4)", "from": "EADSY", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "EBAY", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "EFX", "to": "TRU"}, {"color": "rgba(150,150,150,0.4)", "from": "ELV", "to": "UNH"}, {"color": "rgba(150,150,150,0.4)", "from": "ELV", "to": "HUM"}, {"color": "rgba(150,150,150,0.4)", "from": "EMN", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "ENB", "to": "TRP"}, {"color": "rgba(150,150,150,0.4)", "from": "ENB", "to": "KMI"}, {"color": "rgba(150,150,150,0.4)", "from": "ERIC", "to": "SIEGY"}, {"color": "rgba(150,150,150,0.4)", "from": "ERIC", "to": "NOK"}, {"color": "rgba(150,150,150,0.4)", "from": "ETR", "to": "EXC"}, {"color": "rgba(150,150,150,0.4)", "from": "ETR", "to": "PCG"}, {"color": "rgba(150,150,150,0.4)", "from": "EXPGY", "to": "SIEGY"}, {"color": "rgba(150,150,150,0.4)", "from": "F", "to": "GM"}, {"color": "rgba(150,150,150,0.4)", "from": "FCX", "to": "NEM"}, {"color": "rgba(150,150,150,0.4)", "from": "FDX", "to": "UPS"}, {"color": "rgba(150,150,150,0.4)", "from": "FDX", "to": "R"}, {"color": "rgba(150,150,150,0.4)", "from": "FITB", "to": "RF"}, {"color": "rgba(150,150,150,0.4)", "from": "FITB", "to": "SYF"}, {"color": "rgba(150,150,150,0.4)", "from": "FOXA", "to": "WBD"}, {"color": "rgba(150,150,150,0.4)", "from": "FOXA", "to": "SYF"}, {"color": "rgba(150,150,150,0.4)", "from": "FUJIY", "to": "TM"}, {"color": "rgba(150,150,150,0.4)", "from": "GE", "to": "HON"}, {"color": "rgba(150,150,150,0.4)", "from": "GFS", "to": "NXPI"}, {"color": "rgba(150,150,150,0.4)", "from": "GFS", "to": "QCOM"}, {"color": "rgba(150,150,150,0.4)", "from": "GFS", "to": "NVDA"}, {"color": "rgba(150,150,150,0.4)", "from": "GFS", "to": "SMCI"}, {"color": "rgba(150,150,150,0.4)", "from": "GFS", "to": "GOLD"}, {"color": "rgba(150,150,150,0.4)", "from": "GIS", "to": "MDLZ"}, {"color": "rgba(150,150,150,0.4)", "from": "GLNCY", "to": "RIO"}, {"color": "rgba(150,150,150,0.4)", "from": "GM", "to": "PRU"}, {"color": "rgba(150,150,150,0.4)", "from": "GME", "to": "NU"}, {"color": "rgba(150,150,150,0.4)", "from": "GOOGL", "to": "MSFT"}, {"color": "rgba(150,150,150,0.4)", "from": "GS", "to": "MS"}, {"color": "rgba(150,150,150,0.4)", "from": "GS", "to": "JPM"}, {"color": "rgba(150,150,150,0.4)", "from": "GSK", "to": "NVS"}, {"color": "rgba(150,150,150,0.4)", "from": "HAS", "to": "HD"}, {"color": "rgba(150,150,150,0.4)", "from": "HCA", "to": "THC"}, {"color": "rgba(150,150,150,0.4)", "from": "HD", "to": "LOW"}, {"color": "rgba(150,150,150,0.4)", "from": "HD", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "HD", "to": "KBH"}, {"color": "rgba(150,150,150,0.4)", "from": "HD", "to": "TGT"}, {"color": "rgba(150,150,150,0.4)", "from": "HD", "to": "SBUX"}, {"color": "rgba(150,150,150,0.4)", "from": "HIG", "to": "PRU"}, {"color": "rgba(150,150,150,0.4)", "from": "HLT", "to": "MAR"}, {"color": "rgba(150,150,150,0.4)", "from": "HLT", "to": "MGM"}, {"color": "rgba(150,150,150,0.4)", "from": "HLT", "to": "LYV"}, {"color": "rgba(150,150,150,0.4)", "from": "HMC", "to": "TM"}, {"color": "rgba(150,150,150,0.4)", "from": "HMC", "to": "NSANY"}, {"color": "rgba(150,150,150,0.4)", "from": "HMC", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "HMC", "to": "TAK"}, {"color": "rgba(150,150,150,0.4)", "from": "HNHPF", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "HOG", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "HON", "to": "RTX"}, {"color": "rgba(150,150,150,0.4)", "from": "HON", "to": "MMM"}, {"color": "rgba(150,150,150,0.4)", "from": "HON", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "HON", "to": "UNP"}, {"color": "rgba(150,150,150,0.4)", "from": "HON", "to": "IBM"}, {"color": "rgba(150,150,150,0.4)", "from": "HON", "to": "MDT"}, {"color": "rgba(150,150,150,0.4)", "from": "HON", "to": "STZ"}, {"color": "rgba(150,150,150,0.4)", "from": "HOOD", "to": "RIVN"}, {"color": "rgba(150,150,150,0.4)", "from": "HPE", "to": "PRU"}, {"color": "rgba(150,150,150,0.4)", "from": "HPE", "to": "HPQ"}, {"color": "rgba(150,150,150,0.4)", "from": "HSBC", "to": "SAN"}, {"color": "rgba(150,150,150,0.4)", "from": "HSBC", "to": "SCBFF"}, {"color": "rgba(150,150,150,0.4)", "from": "IBKR", "to": "SCHW"}, {"color": "rgba(150,150,150,0.4)", "from": "ICE", "to": "NDAQ"}, {"color": "rgba(150,150,150,0.4)", "from": "IFNNY", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "IFNNY", "to": "NXPI"}, {"color": "rgba(150,150,150,0.4)", "from": "INTC", "to": "TXN"}, {"color": "rgba(150,150,150,0.4)", "from": "INTC", "to": "MSFT"}, {"color": "rgba(150,150,150,0.4)", "from": "INTU", "to": "PYPL"}, {"color": "rgba(150,150,150,0.4)", "from": "IQ", "to": "TME"}, {"color": "rgba(150,150,150,0.4)", "from": "ISNPY", "to": "UNCRY"}, {"color": "rgba(150,150,150,0.4)", "from": "IVZ", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "JBAXY", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "JD", "to": "PDD"}, {"color": "rgba(150,150,150,0.4)", "from": "JEF", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "JEF", "to": "NWSA"}, {"color": "rgba(150,150,150,0.4)", "from": "JNJ", "to": "PG"}, {"color": "rgba(150,150,150,0.4)", "from": "JNJ", "to": "PFE"}, {"color": "rgba(150,150,150,0.4)", "from": "JNJ", "to": "LLY"}, {"color": "rgba(150,150,150,0.4)", "from": "JNJ", "to": "MRK"}, {"color": "rgba(150,150,150,0.4)", "from": "JNJ", "to": "MCK"}, {"color": "rgba(150,150,150,0.4)", "from": "JPM", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "JPM", "to": "UBS"}, {"color": "rgba(150,150,150,0.4)", "from": "JPM", "to": "TD"}, {"color": "rgba(150,150,150,0.4)", "from": "KBH", "to": "LEN"}, {"color": "rgba(150,150,150,0.4)", "from": "KHC", "to": "MDLZ"}, {"color": "rgba(150,150,150,0.4)", "from": "KMB", "to": "PG"}, {"color": "rgba(150,150,150,0.4)", "from": "KNX", "to": "WERN"}, {"color": "rgba(150,150,150,0.4)", "from": "KO", "to": "PEP"}, {"color": "rgba(150,150,150,0.4)", "from": "KODK", "to": "RIVN"}, {"color": "rgba(150,150,150,0.4)", "from": "KR", "to": "WMT"}, {"color": "rgba(150,150,150,0.4)", "from": "KSS", "to": "M"}, {"color": "rgba(150,150,150,0.4)", "from": "KSS", "to": "LEVI"}, {"color": "rgba(150,150,150,0.4)", "from": "LCID", "to": "RIVN"}, {"color": "rgba(150,150,150,0.4)", "from": "LEVI", "to": "PRU"}, {"color": "rgba(150,150,150,0.4)", "from": "LEVI", "to": "UA"}, {"color": "rgba(150,150,150,0.4)", "from": "LEVI", "to": "LZB"}, {"color": "rgba(150,150,150,0.4)", "from": "LKNCY", "to": "YMM"}, {"color": "rgba(150,150,150,0.4)", "from": "LMT", "to": "NOC"}, {"color": "rgba(150,150,150,0.4)", "from": "LNVGY", "to": "TCEHY"}, {"color": "rgba(150,150,150,0.4)", "from": "LPLA", "to": "SCHW"}, {"color": "rgba(150,150,150,0.4)", "from": "LVMUY", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "LVS", "to": "WYNN"}, {"color": "rgba(150,150,150,0.4)", "from": "LYFT", "to": "UBER"}, {"color": "rgba(150,150,150,0.4)", "from": "M", "to": "URBN"}, {"color": "rgba(150,150,150,0.4)", "from": "MA", "to": "V"}, {"color": "rgba(150,150,150,0.4)", "from": "MAR", "to": "RCL"}, {"color": "rgba(150,150,150,0.4)", "from": "MBGYY", "to": "RNLSY"}, {"color": "rgba(150,150,150,0.4)", "from": "MBGYY", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "MBGYY", "to": "VWAGY"}, {"color": "rgba(150,150,150,0.4)", "from": "MBGYY", "to": "UNPRF"}, {"color": "rgba(150,150,150,0.4)", "from": "MCD", "to": "SBUX"}, {"color": "rgba(150,150,150,0.4)", "from": "MCO", "to": "SPGI"}, {"color": "rgba(150,150,150,0.4)", "from": "MCO", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "MCO", "to": "TRU"}, {"color": "rgba(150,150,150,0.4)", "from": "MDLZ", "to": "PEP"}, {"color": "rgba(150,150,150,0.4)", "from": "MET", "to": "PRU"}, {"color": "rgba(150,150,150,0.4)", "from": "META", "to": "PYPL"}, {"color": "rgba(150,150,150,0.4)", "from": "MGM", "to": "WYNN"}, {"color": "rgba(150,150,150,0.4)", "from": "MKTX", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "MO", "to": "PM"}, {"color": "rgba(150,150,150,0.4)", "from": "MORN", "to": "MSCI"}, {"color": "rgba(150,150,150,0.4)", "from": "MSCI", "to": "PYPL"}, {"color": "rgba(150,150,150,0.4)", "from": "MSFT", "to": "ORCL"}, {"color": "rgba(150,150,150,0.4)", "from": "MU", "to": "WDC"}, {"color": "rgba(150,150,150,0.4)", "from": "NCLH", "to": "RCL"}, {"color": "rgba(150,150,150,0.4)", "from": "NCLH", "to": "UAL"}, {"color": "rgba(150,150,150,0.4)", "from": "NDAQ", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "NFLX", "to": "SPOT"}, {"color": "rgba(150,150,150,0.4)", "from": "NIO", "to": "XPEV"}, {"color": "rgba(150,150,150,0.4)", "from": "NIO", "to": "RIVN"}, {"color": "rgba(150,150,150,0.4)", "from": "NIO", "to": "VYGVQ"}, {"color": "rgba(150,150,150,0.4)", "from": "NKE", "to": "TROW"}, {"color": "rgba(150,150,150,0.4)", "from": "NMR", "to": "TM"}, {"color": "rgba(150,150,150,0.4)", "from": "NOC", "to": "RTX"}, {"color": "rgba(150,150,150,0.4)", "from": "NSRGY", "to": "UL"}, {"color": "rgba(150,150,150,0.4)", "from": "NSRGY", "to": "NVS"}, {"color": "rgba(150,150,150,0.4)", "from": "NTDOY", "to": "SONY"}, {"color": "rgba(150,150,150,0.4)", "from": "NVAX", "to": "SOFI"}, {"color": "rgba(150,150,150,0.4)", "from": "NVS", "to": "RHHBY"}, {"color": "rgba(150,150,150,0.4)", "from": "NVS", "to": "SNY"}, {"color": "rgba(150,150,150,0.4)", "from": "NXPI", "to": "TXN"}, {"color": "rgba(150,150,150,0.4)", "from": "ODFL", "to": "WERN"}, {"color": "rgba(150,150,150,0.4)", "from": "OKTA", "to": "TWLO"}, {"color": "rgba(150,150,150,0.4)", "from": "OPEN", "to": "Z"}, {"color": "rgba(150,150,150,0.4)", "from": "PATH", "to": "SNOW"}, {"color": "rgba(150,150,150,0.4)", "from": "PATH", "to": "PLTR"}, {"color": "rgba(150,150,150,0.4)", "from": "PATH", "to": "ZM"}, {"color": "rgba(150,150,150,0.4)", "from": "PBR", "to": "VALE"}, {"color": "rgba(150,150,150,0.4)", "from": "PEP", "to": "PG"}, {"color": "rgba(150,150,150,0.4)", "from": "PEP", "to": "PM"}, {"color": "rgba(150,150,150,0.4)", "from": "PINS", "to": "SNAP"}, {"color": "rgba(150,150,150,0.4)", "from": "PINS", "to": "PYPL"}, {"color": "rgba(150,150,150,0.4)", "from": "PLUG", "to": "RIVN"}, {"color": "rgba(150,150,150,0.4)", "from": "PNC", "to": "WFC"}, {"color": "rgba(150,150,150,0.4)", "from": "PRU", "to": "WFC"}, {"color": "rgba(150,150,150,0.4)", "from": "PSX", "to": "XOM"}, {"color": "rgba(150,150,150,0.4)", "from": "PYPL", "to": "SHOP"}, {"color": "rgba(150,150,150,0.4)", "from": "PYPL", "to": "TMUS"}, {"color": "rgba(150,150,150,0.4)", "from": "R", "to": "WERN"}, {"color": "rgba(150,150,150,0.4)", "from": "RBLX", "to": "SHOP"}, {"color": "rgba(150,150,150,0.4)", "from": "RIVN", "to": "TSLA"}, {"color": "rgba(150,150,150,0.4)", "from": "RIVN", "to": "TLRY"}, {"color": "rgba(150,150,150,0.4)", "from": "RKUNY", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "RY", "to": "TD"}, {"color": "rgba(150,150,150,0.4)", "from": "SAN", "to": "VOD"}, {"color": "rgba(150,150,150,0.4)", "from": "SAP", "to": "SIEGY"}, {"color": "rgba(150,150,150,0.4)", "from": "SFTBY", "to": "YAHOY"}, {"color": "rgba(150,150,150,0.4)", "from": "SHEL", "to": "TTE"}, {"color": "rgba(150,150,150,0.4)", "from": "SHOP", "to": "SNOW"}, {"color": "rgba(150,150,150,0.4)", "from": "SONY", "to": "TM"}, {"color": "rgba(150,150,150,0.4)", "from": "SPOT", "to": "WMG"}, {"color": "rgba(150,150,150,0.4)", "from": "SSNLF", "to": "TWLO"}, {"color": "rgba(150,150,150,0.4)", "from": "STLA", "to": "VLVLY"}, {"color": "rgba(150,150,150,0.4)", "from": "T", "to": "VZ"}, {"color": "rgba(150,150,150,0.4)", "from": "TME", "to": "YMM"}, {"color": "rgba(150,150,150,0.4)", "from": "TROW", "to": "UPS"}, {"color": "rgba(150,150,150,0.4)", "from": "TROW", "to": "WHR"}, {"color": "rgba(150,150,150,0.4)", "from": "TSM", "to": "TXN"}, {"color": "rgba(150,150,150,0.4)", "from": "UBER", "to": "YELP"}, {"color": "rgba(150,150,150,0.4)", "from": "USB", "to": "WFC"}, {"color": "rgba(150,150,150,0.4)", "from": "VLVLY", "to": "XPO"}, {"color": "rgba(150,150,150,0.4)", "from": "VLVLY", "to": "VTRS"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"nodes": {"font": {"size": 16, "strokeWidth": 4, "strokeColor": "#000000"}, "shape": "dot"}, "edges": {"color": {"inherit": true}, "smooth": {"type": "continuous"}, "width": 1}, "physics": {"enabled": true, "barnesHut": {"gravitationalConstant": -30000, "centralGravity": 0.3, "springLength": 100, "springConstant": 0.04, "damping": 0.09, "avoidOverlap": 1}, "stabilization": {"enabled": true, "iterations": 1000, "fit": true}}, "interaction": {"navigationButtons": true, "keyboard": true, "zoomView": true, "dragNodes": true, "hover": true}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
